@@ -77,76 +77,37 @@ mydata1$member_type[mydata1$member_type=="RENEW ASSOCIATE"]<-"RA"
 
 ###Now generating some descriptive statistics
 ###Finding number of members joining and renewing each quarter
+class(mydata1$joined_date)   ###character
+class(mydata1$renewal_date)  ###character
+mydata1$joined_date<-as.Date(mydata1$joined_date,format="%d-%m-%Y") ###class=Date
+mydata1$renewal_date<-as.Date(mydata1$renewal_date,format="%d-%m-%Y") ###Class=date
 mydata1$joindateq<-as.yearqtr(mydata1$joined_date,format="%Y-%m-%d") ###year-quarterly format
 mydata1$joindatem<-as.yearmon(mydata1$joined_date,format="%Y-%m-%d") ###yearly-month format
 mydata1$renewaldateq<-as.yearqtr(mydata1$renewal_date,format="%Y-%m-%d")
 mydata1$renewaldatem<-as.yearmon(mydata1$renewal_date,format="%Y-%m-%d")
+mydata1$join_year<-year(mydata1$joindateq)
+mydata1$renewal_year<-year(mydata1$renewaldateq)
 
-###Plotting
-group1<-mydata1%>%count(member_type,joindateq)
-group1<-group1 %>%arrange(joindateq)
-group1$year<-year(group1$joindateq)
-  
-  fig1<-ggplot(data=group1,aes(x=Y,y=n,color=member_type))+
-        geom_point()+
-        theme_minimal()
-  library(plotly)
-  ggplotly(fig1)
-  
-  fig2<-ggplot(data=group2,aes(x=Y,y=n,color=member_type))+
-    geom_point()+
-    theme_minimal()
-  library(plotly)
-  ggplotly(fig1)
-  
-  ###
-  
-  
-  library(ggplot2)
-  theme_set(theme_classic())
-  s<-ggplot(group1,aes(Y))
-  R<-s+geom_bar(aes(fill=n),width=0.5)+
-    theme(axis.text.x=element_text(angle=65,vjust=0.6))+
-    labs(title="Histogram of number of members joining each year")
-  ggplotly(R)
-  
-  
-  
-  ###Kernel density plot for number of people joining each yr
-  d <- density(group$Y,na.rm=TRUE)
-   plot(d)
-  
-  
-  library(ggplot2)
-  theme_set(theme_classic())
-  
-  
-  
-  
-  # Histogram on a Categorical variable
-  library(ggplot2)
-     theme_set(theme_classic())
-   g<-ggplot(group,aes(Y))
-   g+geom_bar(aes(fill=member.t),width=0.5)+
-                 theme(axis.text.x=element_text(angle=65,vjust=0.6))+
-                  labs(title="Histogram of number of members joining each year")
-   
-   by_group<-group%>%group_by(Y)
-   by_group %>% summarise (n=sum(n))
-
-###Frequency of member types joining each quarter of each year
- df1<-cbind.data.frame(mydata1$joindateq,mydata1$member_type) 
- group1<-df1%>%group_by(mydata1$joindateq,mydata1$member_type)%>%count()
- group2<-df1%>%group_by
-   group<-group %>%
-       arrange(joindateq)
-   group$Y<-year(group$joindateq)
-   
-   by_group<-group%>%group_by(Y)
-   by_group
-   D<-aggregate(by_group$n,by=list(Category=by_group$Y),FUN=sum)
+###Plotting number of members joining each year
+mydata1$member_type<-as.character(mydata1$member_type)
+group1<-cbind.data.frame(mydata1$member_type,mydata1$join_year)
+library(plyr)
+j<-count(group1,'mydata1$join_year')
+colnames(j)<-c("Year","Freq")
+install.packages("devtools")
+library(devtools)
+install_github("kassambara/easyGgplot2")
+library(easyGplot2)
+ggplot2.histogram(data=j, xName='Year',fill="white", color="black",
+                  addDensityCurve=TRUE, densityFill='#FF6666')
 
 
+####Plotting number of renewals each year
+group2<-cbind.data.frame(mydata1$member_type,mydata1$renewal_year)
+k<-count(group2,'mydata1$renewal_year')
+colnames(k)<-c("Year","Freq")
+ggplot2.histogram(data=k, xName='Year',fill="white", color="black",
+                  addDensityCurve=TRUE, densityFill='#FF6666')
 
 ###Fixing names of cities 
 mydata1$city<-as.factor(mydata1$city_home)
@@ -385,6 +346,66 @@ survdiff(Surv(time = mydata1$days, event = mydata1$status)~mydata1$member.t)
 survdiff(Surv(time = mydata1$days, event = mydata1$status) ~ mydata1$member.t, rho = 1)
 
 ###Plotting survival curves for school district regions
+###In this case, members were sorted into relevant school district regions. A crosswalk of school 
+###district regions is created which is merged with the original dataset.
+###Before generating survival curves for school district regions, I obtain
+###some descriptive statistics. 
+mydata1$schoold<-NA
+sch<-read.csv("schooldistrict.csv")
+mydata1$schoold<-group[match(paste(mydata1$csd),paste(sch$csd)),"schoold"]
+mydata1$schoold<-as.character(mydata1$schoold)
+###Number of members by each type by each school district region along with member-specific 
+###and overall termination rates 
+Ft<-mydata1%>%filter(member.t=="Full-time")
+number_member<-count(Ft,'schoold') 
+member_alive_07<-Ft%>%filter(join_year==2007)
+m07<-count(member_alive_07,'schoold')
+member_alive_18<-Ft%>%filter(renewal_date>"2018-05-31")
+m18<-count(member_alive_18,'schoold')
+termination_rate=(1-(m18[,2]/m07[,2]))*100
+
+As<-mydata1%>%filter(member.t=="Associate")
+count(As,'schoold')
+member_alive_07_as<-As%>%filter(join_year==2007)
+m07_as<-count(member_alive_07_as,'schoold')
+member_alive_18_as<-As%>%filter(renewal_date>"2018-05-31")
+m18_as<-count(member_alive_18_as,'schoold')
+termination_rate_as=(1-(m18_as[,2]/m07_as[,2]))*100
+
+St<-mydata1%>%filter(member.t=="Student")
+count(St,'schoold')
+member_alive_07_st<-St%>%filter(join_year==2007)
+m07_st<-count(member_alive_07_st,'schoold')
+member_alive_18_st<-St%>%filter(renewal_date>"2018-05-31")
+m18_st<-count(member_alive_18_st,'schoold')
+termination_rate_st=(1-(m18_st[,2]/m07_st[,2]))*100
+
+###Overall termination rates by region 
+member_alive_07_overall<-mydata1%>%filter(join_year==2007)
+m07_overall<-count(member_alive_07_overall,'schoold')
+member_alive_18_overall<-mydata1%>%filter(renewal_date>"2018-05-31")
+m18_overall<-count(member_alive_18_overall,'schoold')
+overall_termination_rate=(1-(m07_overall[,2]/m18_overall[,2]))*100
+
+
+###Survival curves by school district regions
+surv_object<- Surv(time = mydata1$days, event = mydata1$status)
+###Plotting Kaplan-Meier survival curves for three member types-full-time, student and associate
+fit2<- survfit(surv_object~schoold,data = mydata1)
+ ggsurv<-ggsurvplot(fit2,
+   data=mydata1,
+   legend.title="Variation across school district regions",
+   legend.labs=c("Fraser Valley","Kootenays","Northeast","Okanagan/Mainline","Vancouver Island",
+                 "Greater Victoria","Metro/Coast","Northwest","Thompson Country"),
+   conf.int=TRUE,
+   pval=TRUE,
+   ggtheme=theme_light(),
+   risk.table=TRUE,
+   risk.table.height=0.35,
+   risk.table.y.text.col=T,
+   risk.table.y.text=FALSE,
+   tables.theme=theme_cleantable(),
+   surv.median.line="hv")
 
 
 
@@ -893,10 +914,14 @@ mydata1$license_cc<-mydata1$freq_f+mydata1$freq_g
 
 ###Branch membership
 ###A crosswalk of csds with branches is created and merged with original ECEBC database
+###Csds with a branch is given a value of 1 while csds without are given a value of 0.
 branch<-read.csv("branch.csv")
 mydata1$branch<-NA
 mydata1$branch<-branch[match(paste(mydata1$csd),paste(branch$csd)),"branch"]
 mydata1$branch[is.na(mydata1$branch)]<-0
+###Branch names are also merged with dataset
+mydata1$branch_name<-NA
+mydata1$branch_name<-branch[match(paste(mydata1$csd),paste(branch$csd)),"branch_name"]
 
 
 ###School data 
@@ -1213,7 +1238,7 @@ plot( time, sresids[,13], xlab="Time",
         ylab="Scaled Schoenfeld Residual (Licensed childcare facilities)" )
 lines( smooth.spline( time, sresids[,13] ), col="red", lwd=2 )
 
-viol1<-cox.zph(tv_fito, transform="identity" ) ###We transform against time for slope-WE CHOOSE LOG TIME TRANSFFORMATION
+viol1<-cox.zph(tv_fito, transform="identity" ) 
 viol2<-cox.zph(tv_fito, transform="log" )
 plot(viol2[13], xlab="Time to renewal in days")
 abline(h=0,lty=3)
@@ -1226,21 +1251,15 @@ plot(viol1)
 plot(viol2)
 
 
-###EXAMPLE
-
-
 viol.coxph<-cox.zph(tv_fito)
-###need to rbind everything 
-###for any outliers use deviance residuals
 
+###For any outliers use deviance residuals
 dresids <- residuals( tv_fito, type="deviance" )
  lp <- predict( tv_fito, type="lp" )
  plot(lp, dresids, xlab="Linear Predictor", ylab="Deviance Residual")
  dfbeta1<-ggcoxdiagnostics(tv_fito, type = "dfbeta",
                   linear.predictions = FALSE, ggtheme = theme_bw())
- 
-
- dfbeta <- residuals( tv_fito, type="dfbeta" )
+  dfbeta <- residuals( tv_fito, type="dfbeta" )
  colnames( dfbeta ) <- names(tv_fito$coef)
  summary( dfbeta )
  
@@ -1249,7 +1268,6 @@ dresids <- residuals( tv_fito, type="deviance" )
 ###Extended Cox model with clustering
 fit_tvc <- coxph( Surv(tstart, tstop, status) ~ member+ bursary+branch_csd+
                 school +sts+license_cc+cluster(csd), method="efron",data=nuba1_lf)
-
 install.packages("stargazer")
 library(stargazer)
 stargazer(fit_tvc)
@@ -1261,8 +1279,6 @@ library(coxme)
 sfrail <- coxme(Surv(tstart, tstop, status) ~ member.t + bursary + branch_csd 
                   +     school + sts+license_cc 
                   +   (1 |csdid),  data = nuba1_lf)
-                  
-                  
                   
 ###Average frailty by census subdivision
 avg_frailty <- with(nuba1_lf, tapply(status,csd, sum, na.rm=T))
