@@ -299,7 +299,7 @@ mydata1$days<-ifelse(mydata1$renewal_date<"2018-05-31",mydata1$days_rj,mydata1$t
 mydata1$days<-as.integer(mydata1$days)
 ##Checking for na's in days
 h<-mydata1%>%filter(is.na(days))
-mydata1<-mydata1%>%drop_na(days)   ###dim(nuba1)= 3959 138
+mydata1<-mydata1%>%drop_na(days)  
 ##For members dropping out the same day as joining (doing so as in future Cox models with time varying 
 #covariates will not work with any value of days=0.)
 mydata1$days<-ifelse(mydata1$days==0,1,mydata1$days)
@@ -508,8 +508,6 @@ cc<-cc[cc$CITY!="HARRISON HOT SPRINGS" & cc$CITY!="HITACU" &
          cc$CITY!="NEW DENVER" & cc$CITY!="TSAWWASSEN",]
 cc<-cc[cc$POSTAL_CODE!="V2G 5L4" & cc$POSTAL_CODE!="V2G 5K9",]
 
-##dim(cc)
-##[1]4605     3
 
 ###Correcting postal code errors and assigning areas to correct census subdivisions.
 ###From ECEBC database most of the mislabelling occurred with placing Langley city 
@@ -585,9 +583,6 @@ cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9R 6V7"|POSTAL_CODE=="V9R 6V6","NANAIMO C
 ###and Esquimalt area are all labelled as Victoria. Relabelling them using Statistics 
 ###Canada's census subdivision boundaries.
 cc%>%filter(CITY=="VICTORIA")%>%select(POSTAL_CODE)
-
-###query about v9b 2w1, v9b 0s2, V9C 0J6
-
 cc$CITY<-with(cc, ifelse(POSTAL_CODE=="V8X 1W4"|
                            POSTAL_CODE== "V8P 4P2"|
                            POSTAL_CODE== "V8N 4A2"|
@@ -762,7 +757,6 @@ cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9C 4A4"|
                           POSTAL_CODE=="V9C 1J8"|
                           POSTAL_CODE=="V9B 1J2","COLWOOD",CITY))
 
-##view royal
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 1S6"|
                           POSTAL_CODE=="V9B 1G4"|
                           POSTAL_CODE=="V9B 1T9"|
@@ -775,8 +769,6 @@ cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 1S6"|
                           POSTAL_CODE=="V8Z 5G5"|
                           POSTAL_CODE=="V8Z 1R7","VIEW ROYAL",CITY))
 
-
-#oak bay
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8S 3B9"|
                           POSTAL_CODE=="V8R 5L7"|
                           POSTAL_CODE=="V8R 1R3"|
@@ -788,8 +780,6 @@ cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8S 3B9"|
                           POSTAL_CODE=="V8R 5E6"|
                           POSTAL_CODE=="V8R 5K2","OAK BAY",CITY))
 
-
-#langford
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 2Y2"|
                           POSTAL_CODE=="V9B 2T6"|
                           POSTAL_CODE=="V9B 3P7"|
@@ -836,12 +826,9 @@ cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 2Y2"|
                           POSTAL_CODE=="V9C 2P4"|
                           POSTAL_CODE=="V9B 2T9","LANGFORD",CITY))
 
-#central saanich
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8Z 5V4"|
                           POSTAL_CODE=="V8Z 5W7","CENTRAL SAANICH",CITY))
 
-
-#esquimalt
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9A 6C7"|
                           POSTAL_CODE=="V9A 4W4"|
                           POSTAL_CODE=="V9A 5J7"|
@@ -858,17 +845,13 @@ cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9A 6C7"|
                           POSTAL_CODE=="V9A 4E6"|
                           POSTAL_CODE=="V9A 5E2","ESQUIMALT",CITY))
 
-
-#new songhees 1a
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9A 2R1","NEW SONGHEES 1A",CITY))
 
-#highlands
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 6E2"|
                           POSTAL_CODE=="V9B 6R6"|
                           POSTAL_CODE=="V9B 0C4"|
                           POSTAL_CODE=="V9B 6E2","HIGHLANDS",CITY))
 
-#metchosin
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9C 4J9"|
                           POSTAL_CODE=="V9C 3Z6"|
                           POSTAL_CODE=="V9C 3Y7"|
@@ -876,17 +859,14 @@ cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9C 4J9"|
                           POSTAL_CODE=="V9C 3Y6"|
                           POSTAL_CODE=="V9C 4G4","METCHOSIN",CITY))
 
-#north saanich
 cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8L 1K5"|
                           POSTAL_CODE=="V8L 1H7","NORTH SAANICH",CITY))
 
-###Checking levels of city to see if there are any unusual names
 cc$C<-as.factor(cc$CITY)
 levels(cc$C)
 ###Adding up group and family childcare facilities in each census subdivision
 cc1<-cbind.data.frame(cc$SERVICE_TYPE_CD,cc$CITY)
 colnames(cc1)<-c("type","city")
-
 library(plyr)
 library(reshape2)
 library(tidyr)  ###to get gather to work in dplyr
@@ -895,7 +875,7 @@ s<-cc1%>%
   gather("type", "city") %>%
   select(city, type) %>%
   table()
-s<-as.data.frame(s)  ###dim(s)= 352 3
+s<-as.data.frame(s)  
 ###Creating separate dataframes for family and childcare facilities 
 family<-s[1:176,] ###family facilities are from rows 1 to 176
 group<-s[177:352,] ###group childcare facilities are from rows 177 onwards
@@ -947,23 +927,20 @@ nuba1$J11<-NA
 nuba1$J12<-NA
 nuba1$J13<-NA
 nuba1$J14<-NA
-nuba1$Ja15<-NA ##b
-nuba1$M15<-NA  ##b
+nuba1$Ja15<-NA 
+nuba1$M15<-NA 
 nuba1$J15<-NA
-nuba1$D15<-NA  ##cc & den
-nuba1$Ja16<-NA  ##b
-nuba1$M16<-NA  ##b
+nuba1$D15<-NA 
+nuba1$Ja16<-NA 
+nuba1$M16<-NA  
 nuba1$J16<-NA
-nuba1$S16<-NA ##b
-nuba1$Ja17<-NA ##b
+nuba1$S16<-NA 
+nuba1$Ja17<-NA 
 nuba1$M17<-NA
 nuba1$J17<-NA
-nuba1$S17<-NA ##b
-nuba1$Ja18<-NA ##b
-nuba1$M18<-NA ##b
-
-
-
+nuba1$S17<-NA 
+nuba1$Ja18<-NA 
+nuba1$M18<-NA 
 
 nuba1$J7<-ifelse(nuba1$csd=="FERNIE"|
                    nuba1$csd=="VERNON"|
@@ -1047,11 +1024,9 @@ nuba1$J11<-ifelse(nuba1$csd=="ABBOTSFORD" & nuba1$joined_date<="2011-06-30"|
 
 
 ###2012
-#5,83,44,82,10,33,47,58
 nuba1$J12<-ifelse(
   nuba1$csd=="CENTRAL KOOTENAY K" & nuba1$joined_date<="2012-06-30","2012-06-30",nuba1$J12)
 ##2013
-#4,68,79,20,28
 nuba1$J13<-ifelse(nuba1$csd=="NANAIMO A" & nuba1$joined_date<="2013-06-30"|
                          nuba1$csd=="COWICHAN VALLEY C" & nuba1$joined_date<="2013-06-30"|
                          nuba1$csd=="COWICHAN VALLEY I" & nuba1$joined_date<="2013-06-30"|
@@ -1062,7 +1037,7 @@ nuba1$J13<-ifelse(nuba1$csd=="NANAIMO A" & nuba1$joined_date<="2013-06-30"|
                          nuba1$csd=="WILLIAMS LAKE" & nuba1$joined_date<="2013-06-30",
                        "2013-06-30",nuba1$J13)
 ##2014
-#61,68,78,91,59,40,69
+
 nuba1$J14<-ifelse(nuba1$csd=="VICTORIA" & nuba1$joined_date<="2014-06-30"|
                          nuba1$csd=="LADYSMITH" & nuba1$joined_date<="2014-06-30"|
                          nuba1$csd=="VANDERHOOF" & nuba1$joined_date<="2014-06-30"|
@@ -1072,9 +1047,7 @@ nuba1$J14<-ifelse(nuba1$csd=="VICTORIA" & nuba1$joined_date<="2014-06-30"|
                          nuba1$csd=="QUALICUM BEACH" & nuba1$joined_date<="2014-06-30",
                        "2014-06-30",nuba1$J14)
 
-###leave this for now
-
-#27,35,74,91,70
+##2015
 nuba1$J15<-ifelse(nuba1$csd=="WILLIAMS LAKE" & nuba1$joined_date<="2015-06-30"|
                          nuba1$csd=="LANGLEY C" & nuba1$joined_date<="2015-06-30"|
                          nuba1$csd=="ASHCROFT" & nuba1$joined_date<="2015-06-30"|
@@ -1086,16 +1059,13 @@ nuba1$J15<-ifelse(nuba1$csd=="WILLIAMS LAKE" & nuba1$joined_date<="2015-06-30"|
 
 
 nuba1$D15<-with(nuba1,ifelse(joined_date<="2015-12-31","2015-12-31",D15))
-
-
-
-#6,27,68,54,85,28,67,72
+###2016
 nuba1$J16<-ifelse(nuba1$csd=="NANAIMO A" & nuba1$joined_date<="2016-06-30"|
                          nuba1$csd=="SMITHERS" & nuba1$joined_date<="2016-06-30"|
                          nuba1$csd=="QUESNEL" & nuba1$joined_date<="2016-06-30",
                        "2016-06-30",nuba1$J16)
 
-
+###2017
 nuba1$J17<-with(nuba1,ifelse(csd=="CAMPBELL RIVER" & joined_date<="2017-06-30","2017-06-30",J17))
 
 nuba1$J7<-as.Date(nuba1$J7)
@@ -1115,10 +1085,6 @@ nuba1$D15<-as.Date(nuba1$D15)
 nuba1$J16<-as.Date(nuba1$J16)
 
 nuba1$J17<-as.Date(nuba1$J17)
-
-
-
-
 nuba1$j7<-as.integer(nuba1$J7-nuba1$joined_date)
 nuba1$j8<-as.integer(nuba1$J8-nuba1$joined_date)
 nuba1$j9<-as.integer(nuba1$J9-nuba1$joined_date)
@@ -1140,7 +1106,6 @@ nuba1$j17<-as.integer(nuba1$J17-nuba1$joined_date)
 ###Looping over rows to correctly assign at which month a particular tstop 
 ###occurs. For the first month, tstop/30 gives the correct month
 ###but for months afterwards the formula underneath helps. 
-###Forgot how I figured this out, got to check.
 for(i in 1:nrow(nuba1_l)){
   if(nuba1_l$mth[i]>1){
      nuba1_l$Mth[i]<-(nuba1_l$tstop[i]/30)+(nuba1_l$mth[i]-1)
@@ -1148,14 +1113,8 @@ for(i in 1:nrow(nuba1_l)){
     nuba1_l$Mth[i]<-(nuba1_l$tstop[i]/30)
   }
 }
-
-###fixing up Mth for any decimals
+###Fixing up Mth for any decimals
 nuba1_l$Mth<-ceiling(nuba1_l$Mth)
-
-
-
-
-
 ###Extended Cox model
 fit_tvc <- coxph( Surv(tstart, tstop, status) ~ member+ bursary+branch_csd+
                 school +sts+license_cc, method="efron",data=nuba1_lf)
@@ -1220,9 +1179,6 @@ plot(viol_km[1],xlab="TIME IN DAYS",ylab="BETA(t)-FULL-TIME MEMBER")
 abline(h=0,lty=3)
 abline(h=coef(tv_fito)[1])
 
-
-###you create just a dataframe from mnuba1 before time splitting for this as you can't have split time
-###first check which ones violate graphically to see trends
 install.packages("stargazer")
 library(stargazer)
 stargazer(tv_fito)
