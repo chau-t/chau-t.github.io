@@ -1,0 +1,1284 @@
+####Loading csv file
+mydata1<-read.csv("members1.csv",stringsAsFactors = FALSE,strip.white = TRUE)
+install.packages("dplyr")
+install.packages("lubridate")
+install.packages("ggplot2")
+install.packages("zoo")
+install.packages("plotly")
+install.packages("ggfortify")
+install.packages("survival")
+install.packages("ggplot2")
+install.packages("magrittr")
+install.packages("survminer")
+install.packages("ggpubr")
+install.packages("coxme")
+library(ggplot2)
+library(magrittr)
+library(ggpubr)
+library(survminer)
+library(survival)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(zoo)
+library(plotly)
+library(ggfortify)
+library(coxme)
+
+###Dropping non-members from ECEBC database
+mydata1$member_type1<-as.factor(mydata1$member_type)
+levels(mydata1$member_type1)
+mydata1<-mydata1[mydata1$member_type!="nonmember" & mydata1$member_type!="Subscription",]
+###Checking for out-of-province members
+mydata1$state1<-as.factor(mydata1$state)    
+levels(mydata1$state1) ##Out-of-province members exist
+###Checking if out-of-province members are really out-of-province members or simply mislabelled BC members
+mydata1%>%filter(state=="µÁÀÕìù"|state=="AB"|state=="alberta"|state=="Alberta"|state=="Australia"|
+          state=="Hong Kong"|state=="Leyte"|state=="NL"|state=="NT"|state=="Nunavut"|state=="On"|state=="ON"|
+          state=="ONT"|state=="Ontario"|state=="Penticton"|state=="QC"|state=="Quebec"|state=="SK"|state=="YK"|
+          state=="YT"|state=="Yukon")%>%select(city_home)
+###None of the above have cities that fall under BC province
+###Double-checking with address and zipcode provided
+
+da1<-select(filter(mydata1,state=="µÁÀÕìù"|state=="AB"|state=="alberta"|state=="Alberta"|state=="Australia"|
+      state=="Hong Kong"|state=="Leyte"|state=="NL"|state=="NT"|state=="Nunavut"|
+      state=="On"|state=="ON"|state=="Hong Kong"|state=="Leyte"|state=="NL"|state=="NT"|state=="Nunavut"|
+      state=="On"|state=="ON"|state=="ONT"|state=="Ontario"|state=="Penticton"|state=="QC"|state=="Quebec"|
+      state=="SK"|state=="YK"|state=="YT"|state=="Yukon"),c('state','address_home','postal_code','city_home'))
+####these are out-of-province members (except for Penticton) and so drop them
+
+ 
+###Dropping non-BC resident members: 
+dim(mydata1)  ##4571 24
+mydata1<-mydata1[mydata1$state!="AB" & mydata1$state!="alberta"& mydata1$state!="Alberta" &
+        mydata1$state!="Australia"& mydata1$state!="Hong Kong"& mydata1$state!="Leyte"& mydata1$state!="NL" &
+        mydata1$state!="NT"& mydata1$state!="Nunavut"& mydata1$state!="On"& mydata1$state!="ON"&        
+        mydata1$state!="Ontario"& mydata1$state!="ONT" & mydata1$state!="QC"& mydata1$state!="Quebec" &
+        mydata1$state!="SK"& mydata1$state!="YK"& mydata1$state!="YT"& mydata1$state!="Yukon" &
+        mydata1$state!="µÁÀÕìù",] 
+dim(mydata1) ##4516 24
+
+state2<-as.factor(mydata1$state)
+levels(state2)
+###Creating uniform name for all BC name variant to be BC
+mydata1$state<-"BC"  ###replacing all elements in state with "BC"
+
+
+###Cleaning up rest of the members
+mydata1$member_type<-toupper(mydata1$member_type)
+mydata1$member_type2<-as.factor(mydata1$member_type)
+levels(mydata1$member_type2)
+mydata1$member_type[mydata1$member_type=="NEW FULL"]<-"NF"
+mydata1$member_type[mydata1$member_type=="RENEW FULL"]<-"RF"
+mydata1$member_type[mydata1$member_type=="NEW STUDENT"]<-"NS"
+mydata1$member_type[mydata1$member_type=="RENEW STUDENT"]<-"RS"
+mydata1$member_type[mydata1$member_type=="NEW ASSOCIATE"]<-"NA"
+mydata1$member_type[mydata1$member_type=="RENEW ASSOCIATE"]<-"RA"
+
+###Now generating some descriptive statistics
+###Finding number of members joining and renewing each quarter
+class(mydata1$joined_date)   ###character
+class(mydata1$renewal_date)  ###character
+mydata1$joined_date<-as.Date(mydata1$joined_date,format="%d-%m-%Y") ###class=Date
+mydata1$renewal_date<-as.Date(mydata1$renewal_date,format="%d-%m-%Y") ###Class=date
+mydata1$joindateq<-as.yearqtr(mydata1$joined_date,format="%Y-%m-%d") ###year-quarterly format
+mydata1$joindatem<-as.yearmon(mydata1$joined_date,format="%Y-%m-%d") ###yearly-month format
+mydata1$renewaldateq<-as.yearqtr(mydata1$renewal_date,format="%Y-%m-%d")
+mydata1$renewaldatem<-as.yearmon(mydata1$renewal_date,format="%Y-%m-%d")
+mydata1$join_year<-year(mydata1$joindateq)
+mydata1$renewal_year<-year(mydata1$renewaldateq)
+
+###Plotting number of members joining each year
+mydata1$member_type<-as.character(mydata1$member_type)
+group1<-cbind.data.frame(mydata1$member_type,mydata1$join_year)
+library(plyr)
+j<-count(group1,'mydata1$join_year')
+colnames(j)<-c("Year","Freq")
+install.packages("devtools")
+library(devtools)
+install_github("kassambara/easyGgplot2")
+library(easyGplot2)
+ggplot2.histogram(data=j, xName='Year',fill="white", color="black",
+                  addDensityCurve=TRUE, densityFill='#FF6666')
+
+
+####Plotting number of renewals each year
+group2<-cbind.data.frame(mydata1$member_type,mydata1$renewal_year)
+k<-count(group2,'mydata1$renewal_year')
+colnames(k)<-c("Year","Freq")
+ggplot2.histogram(data=k, xName='Year',fill="white", color="black",
+                  addDensityCurve=TRUE, densityFill='#FF6666')
+
+###Fixing names of cities 
+mydata1$city<-as.factor(mydata1$city_home)
+levels(mydata1$city)
+mydata1$city_home<-sapply(mydata1$city_home, toupper)
+##Fixing names from (#-L)
+mydata1$city_home[mydata1$city_home =="150 MILE"]<-"150 MILE HOUSE"
+mydata1$city_home[mydata1$city_home =="AGGASIZ"]<-"AGASSIZ"
+mydata1$city_home[mydata1$city_home =="AGGASSIZ"]<-"AGASSIZ"
+mydata1$city_home[mydata1$city_home =="BURNA BY"]<-"BURNABY"
+mydata1$city_home[mydata1$city_home =="FORT ST  JOHN"]<-"FORT ST JOHN"
+mydata1$city_home[mydata1$city_home =="FORT ST. JOHN"]<-"FORT ST JOHN"
+mydata1$city_home[mydata1$city_home =="FORT ST. JAMES"]<-"FORT ST JAMES"
+mydata1$city_home[mydata1$city_home =="GABRIOLA ISLAND"]<-"GABRIOLA"
+mydata1$city_home[mydata1$city_home =="GARABALDI HIGHLANDS"]<-"GARIBALDI HIGHLANDS"
+mydata1$city_home[mydata1$city_home =="GARBALDI HIGHLANDS"]<-"GARIBALDI HIGHLANDS"
+mydata1$city_home[mydata1$city_home =="GITWINKSIHCKW"]<-"GITWINKSIHLKW"
+mydata1$city_home[mydata1$city_home =="HUDSONS HOPE"]<-"HUDSON'S HOPE"
+mydata1$city_home[mydata1$city_home =="KAMPLOOPS"]<-"KAMLOOPS"
+mydata1$city_home[mydata1$city_home =="KITIMAAT"]<-"KITAMAAT VILLAGE"
+mydata1$city_home[mydata1$city_home =="HAISLA"]<-"KITAMAAT VILLAGE"
+mydata1$city_home[mydata1$city_home =="LAKE COWACHIN"]<-"LAKE COWICHAN"
+mydata1$city_home[mydata1$city_home =="LANTAVILLE"]<-"LANTZVILLE"
+
+
+
+###Fixing names (M-Z)
+mydata1$city_home[mydata1$city_home =="MOBERLY  LAKE"]<-"MOBERLY LAKE"
+mydata1$city_home[mydata1$city_home =="NANIMO"]<-"NANAIMO"
+mydata1$city_home[mydata1$city_home =="NELSON, BC"]<-"NELSON"
+mydata1$city_home[mydata1$city_home =="NEW WESTMINISTER"]<-"NEW WESTMINSTER"
+mydata1$city_home[mydata1$city_home =="OKANAGAN  FALLS"]<-"OKANAGAN FALLS"
+mydata1$city_home[mydata1$city_home =="PEACE RIVER REGIONAL DISTRICT"]<-"DAWSON CREEK"
+mydata1$city_home[mydata1$city_home =="PORT COQUITAM"]<-"PORT COQUITLAM"
+mydata1$city_home[mydata1$city_home =="PRINCE  GEORGE"]<-"PRINCE GEORGE"
+mydata1$city_home[mydata1$city_home =="QUALICUM"]<-"QUALICUM BEACH"
+mydata1$city_home[mydata1$city_home =="QUATHISAKI COVE"]<-"QUATHIASKI COVE"
+mydata1$city_home[mydata1$city_home =="SOUTH DELTA"]<-"DELTA"
+mydata1$city_home[mydata1$city_home =="VAN"]<-"VANCOUVER"
+mydata1$city_home[mydata1$city_home =="VANCOOUVER"]<-"VANCOUVER"
+mydata1$city_home[mydata1$city_home =="VANCOVUER"]<-"VANCOUVER"
+mydata1$city_home[mydata1$city_home =="WAGLISLA"]<-"BELLA BELLA"
+mydata1$city_home[mydata1$city_home =="WARE"]<-"FORT WARE"
+mydata1$city_home[mydata1$city_home=="WHIITE ROCK"]<-"WHITE ROCK"
+
+###checking if changed all names right:
+mydata1$ch<-as.factor(mydata1$city_home)
+levels(mydata1$ch)
+###Names seem to be alright
+
+###Also cross-check address, zip code and city for members to see if correctly labelled
+###City_home variable is changed if 2/3 items of address, postal code and city_home are mismatched 
+###and if 2/3 items agree(if 1 item does not agree then this information is overridden )
+###Creating new dataframe to check 
+geo<-cbind.data.frame(mydata1$id,mydata1$first_name,mydata1$last_name,mydata1$address_home,
+                mydata1$city_home,mydata1$state,mydata1$postal_code)
+colnames(geo)<-c("id","fn","ln","a","ch","s","pc")
+options(max.print=20000)
+
+##4516 rows-checking by 500 rows each turn
+###First 500 rows check and match
+geo[1:500,4:7]
+###Problem: obs #242 should be "Port Coquitlam" but is in "Burnaby" (checked by address, city, postal code)
+### postal code and adress of PC
+mydata1[242,5]<-"PORT COQUITLAM"
+geo[501:1000,4:7]
+ ##Problem 1: Row 640 has wrong city instead of "PORT COQUITLAM" (correct city)(matched by address)
+###Problem 2: Row 686 and 679 have same person 
+mydata1<-mydata1[-(686),]  ###dropped a duplicate
+mydata1[640,5]<-"PORT COQUITLAM" ###Replaced wrong city with correct city
+ ###Problem 3: Row 728 needs to have as city Merville instead of Courtany 
+mydata1[728,5]<-"MERVILLE"
+ ###Problem 4: error in zip code in row 931
+mydata1[931,7]<-"V9L 3W3"
+ ##Problem 5: error in zip code in row 872
+mydata1[872,7]<-"V9L 6T9"
+ ###Problem 6: City is Edmonton in Alberta but mislabelled as BC. Drop row
+mydata1<-newdata3[-(933),]
+ ###Problem 7: 938 to 949 rows are all mislabelled Esquimalt but location is actually Victoria
+mydata1[938:940,5]<-"VICTORIA"
+ geo[1001:1500,4:7]
+ ###Problem 1: Rows 1116 and 1117 have entries from Grand Prarie from Alberta mislabelled
+ ## as BC. Drop them.
+mydata1<-mydata1[-(1116:1117),]
+###Zipcode fix
+mydata1[983,7]<-"V0C1R0"
+ 
+ ### Problem#2: Postal code and address match with Kamloops and not with 
+ ###Heffley Creek in row 1130. Replace Heffley Creek with Kamloops.
+mydata1[1130,5]<-"KAMLOOPS"
+ ###Problem 3: 1399row has zip code V0T 2B0 but is called Kitimat. It is Kitamaat village.
+mydata1[1399,5]<-"KITAMAAT VILLAGE"
+ 
+ ###Problem-4: The city is Ladner but Ladner is a fishing village within city of Delta- 
+ ### it is part of Delta. 
+mydata1[1415,5]<-"DELTA"
+ ######All online searches say this address and zip code is in Victoria. It is 5 minutes away 
+ ####from Langley but it is not in Langford.
+mydata1[1455,5]<-"VICTORIA"
+ 
+ geo[1501:2000,4:7]
+ ###
+ ###Problem 1: 1653 row city is named N. Delta but there is only one obs and N Delta is
+ ###part of Delta  
+mydata1[1653,5]<-"DELTA"
+ ####Problem 2: North Vancouver has two categories: city of North Vancouver and district municipality 
+ ###These two separate places are labelled as North Vancouver. 
+ ###zip code for city: V7M...,V7L...,V7P...
+ ###zip code for district municipality: V7G...,V7J...,V7K...,V7H...,V7N...,V7R...
+ ###North Vancouver city:
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7M",postal_code),"NORTH VANCOUVER C",city_home))
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7L",postal_code),"NORTH VANCOUVER C",city_home))
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7P",postal_code),"NORTH VANCOUVER C",city_home))
+ ###North Vancouver district municipality
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7G",postal_code),"NORTH VANCOUVER D",city_home))
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7J",postal_code),"NORTH VANCOUVER D",city_home))
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7K",postal_code),"NORTH VANCOUVER D",city_home))
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7H",postal_code),"NORTH VANCOUVER D",city_home))
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7N",postal_code),"NORTH VANCOUVER D",city_home))
+ mydata1$city_home <- with(mydata1, ifelse(grepl("^V7R",postal_code),"NORTH VANCOUVER D",city_home))
+ 
+ geo[2001:2500,4:7]
+ ###No problems
+ geo[2501:3000,4:7]
+ ###Problem 1: zip code of row 2814 has wrong post code
+ ###Instead of post code for Richmond, it has post code for North Vancouver
+ mydata1[2814,7]<-"V7C 1T6"
+ ###Problem 2: row 2898 has Sardis as city home  although Chilliwack is better(by address, code)
+ ###Only one observation.
+ mydata1[2898,5]<-"CHILLIWACK"
+ ###Problem 3: zip code of 3092 is mistakenly given to that of Kelowna's
+ newdata3[3092,7]<-"V4A 7G9"
+ ###Problem 4: zip code of 3153 row has wrong number inserted
+ mydata1[3153,7]<-"V3S 2V2"
+ ###Problem 5: Only 2 observations from Tsawwassen in rows 3299 and 3300 and both areas are part of Delta.
+ mydata1[3299:3300,5]<-"DELTA"
+ geo[3001:3500,4:7]
+ ###no problems
+ geo[3501:4000,4:7]
+ ###There is a mistake in observation - zip code V5V 3W7 instead of V5B 3W7
+ mydata1[3672,7]<-"V5V 3W7"
+ 
+ ###mistake in row 3735- zip code should be V5N 3Y5 instead of v5b 3s3
+ mydata1[3735,7]<-"V5N 3Y5"
+ ###mistake in row 3742- zip code should be V5Y 1K3 instead of V5C 0B3
+ mydata1[3742,7]<-"V5Y 1K3"
+ 
+ ###city mislabelled as Vancouver when it is district municipality North Vancouver
+ ###(matched by address and zip code)
+ newdata3[3832,5]<-"NORTH VANCOUVER D"
+ geo[4001:4500,4:7]
+ ###4403 row has city West Vancouver but it should be Vancouver(checked by address and zip code)
+ mydata1[4403,5]<-"VANCOUVER"
+ ###city mislabelled as White Rock when it should be Surrey
+ mydata1[4420,5]<-"SURREY"
+ 
+ mydata1[4456,5]<-"SURREY"
+ 
+ mydata1[4458,5]<-"SURREY"
+ ###Wrong zip code for William's Lake; entered zip code for 150 Mile House by accident
+ mydata1[4473,7]<-"V2G 5L4"
+ ###
+ geo[4501:4516,4:7]
+ 
+ ###4511 row has city as Yarrow and zip code that is not of Yarrow's;checked by address and saw that it is from
+ ##Chilliwack. There is also postal code mistake and so set postal code to the one that matches address
+ newdata3[4511,5]<-"CHILLIWACK"
+ newdata3[4511,7]<-"V2R 5J6"
+ 
+ 
+####Fixing zip codes
+mydata1$postal_code<-sapply(mydata1$postal_code, toupper)
+mydata1$postal_code<-gsub('\\s+','',mydata1$postal_code) 
+ 
+###Non-parametric survival analysis-Kaplan-Meier analysis
+class(mydata1$joined_date)   ###character
+class(mydata1$renewal_date)  ###character
+mydata1$joined_date<-as.Date(mydata1$joined_date,format="%Y-%m-%d") ###class=Date
+mydata1$renewal_date<-as.Date(mydata1$renewal_date,format="%Y-%m-%d") ###Class=date
+mydata1$days_rj<-difftime(mydata1$renewal_date,mydata1$joined_date, units="days")
+mydata1$may18<-"2018-05-31"
+mydata1$may18<-as.Date(mydata1$may18,format="%Y-%m-%d")
+mydata1$time<-difftime(mydata1$may18,mydata1$joined_date,units="days")
+###Some members for some reason have renewal dates beyond 31st May, 2018 in years like 2019 and 2020.
+###Since observation period is upto 31st May, 2018 I am counting their subscription time to be upto 
+##31st May, 2018. Since they will presumably remain members beyond observation period, they will have
+###censored status. 
+mydata1$days<-ifelse(mydata1$renewal_date<"2018-05-31",mydata1$days_rj,mydata1$time)
+mydata1$days<-as.integer(mydata1$days)
+##Checking for na's in days
+h<-mydata1%>%filter(is.na(days))
+mydata1<-mydata1%>%drop_na(days)  
+##For members dropping out the same day as joining (doing so as in future Cox models with time varying 
+#covariates will not work with any value of days=0.)
+mydata1$days<-ifelse(mydata1$days==0,1,mydata1$days)
+###Censoring the variable by generating a dummy variable. The last
+###date for renewal is taken to be 30th May, 2018 beyond which 
+###members are right censored.So they receive a value of 0 which 
+###indicates they have yet to terminate ECEBC membership.
+mydata1$status<-as.numeric(mydata1$renewal_date<="2018-05-31")
+
+###How obtain Kaplan-Meier survival curves with at-risk tables
+mydata1$member.t<-mydata1$member_type
+mydata1$member.t[mydata1$member.t=="NF"]<-"Full-time"
+mydata1$member.t[mydata1$member.t=="RF"]<-"Full-time"
+mydata1$member.t[mydata1$member.t=="NS"]<-"Student"
+mydata1$member.t[mydata1$member.t=="RS"]<-"Student"
+mydata1$member.t[mydata1$member.t=="NA"]<-"Associate"
+mydata1$member.t[mydata1$member.t=="RA"]<-"Associate"
+
+###Plotting survival curve with no strata
+km_fit1 <- survfit(Surv(days,status) ~ 1, data=mydata1)
+ggsurvplot(km_fit1, data =mydata1, pval = TRUE) 
+surv_object<- Surv(time = mydata1$days, event = mydata1$status)
+###Plotting Kaplan-Meier survival curves for three member types-full-time, student and associate
+fit1<- survfit(surv_object~member.t,data = mydata1)
+ ggsurv<-ggsurvplot(fit1,
+   data=mydata1,
+   legend.title="Member type",
+   legend.labs=c("Associate","Fulltime","Student"),
+   conf.int=TRUE,
+   pval=TRUE,
+   ggtheme=theme_light(),
+   risk.table=TRUE,
+   risk.table.height=0.35,
+   risk.table.y.text.col=T,
+   risk.table.y.text=FALSE,
+   tables.theme=theme_cleantable(),
+   surv.median.line="hv")
+
+ggsurv
+summary(fit1)
+###Testing equality of survival curves
+survdiff(Surv(time = mydata1$days, event = mydata1$status)~mydata1$member.t)
+##Peto-Peto Prentice test for equality of survival curves
+survdiff(Surv(time = mydata1$days, event = mydata1$status) ~ mydata1$member.t, rho = 1)
+
+###Plotting survival curves for school district regions
+###In this case, members were sorted into relevant school district regions. A crosswalk of school 
+###district regions is created which is merged with the original dataset.
+###Before generating survival curves for school district regions, I obtain
+###some descriptive statistics. 
+mydata1$schoold<-NA
+sch<-read.csv("schooldistrict.csv")
+mydata1$schoold<-group[match(paste(mydata1$csd),paste(sch$csd)),"schoold"]
+mydata1$schoold<-as.character(mydata1$schoold)
+###Number of members by each type by each school district region along with member-specific 
+###and overall termination rates 
+Ft<-mydata1%>%filter(member.t=="Full-time")
+number_member<-count(Ft,'schoold') 
+member_alive_07<-Ft%>%filter(join_year==2007)
+m07<-count(member_alive_07,'schoold')
+member_alive_18<-Ft%>%filter(renewal_date>"2018-05-31")
+m18<-count(member_alive_18,'schoold')
+termination_rate=(1-(m18[,2]/m07[,2]))*100
+
+As<-mydata1%>%filter(member.t=="Associate")
+count(As,'schoold')
+member_alive_07_as<-As%>%filter(join_year==2007)
+m07_as<-count(member_alive_07_as,'schoold')
+member_alive_18_as<-As%>%filter(renewal_date>"2018-05-31")
+m18_as<-count(member_alive_18_as,'schoold')
+termination_rate_as=(1-(m18_as[,2]/m07_as[,2]))*100
+
+St<-mydata1%>%filter(member.t=="Student")
+count(St,'schoold')
+member_alive_07_st<-St%>%filter(join_year==2007)
+m07_st<-count(member_alive_07_st,'schoold')
+member_alive_18_st<-St%>%filter(renewal_date>"2018-05-31")
+m18_st<-count(member_alive_18_st,'schoold')
+termination_rate_st=(1-(m18_st[,2]/m07_st[,2]))*100
+
+###Overall termination rates by region 
+member_alive_07_overall<-mydata1%>%filter(join_year==2007)
+m07_overall<-count(member_alive_07_overall,'schoold')
+member_alive_18_overall<-mydata1%>%filter(renewal_date>"2018-05-31")
+m18_overall<-count(member_alive_18_overall,'schoold')
+overall_termination_rate=(1-(m07_overall[,2]/m18_overall[,2]))*100
+
+
+###Survival curves by school district regions
+surv_object<- Surv(time = mydata1$days, event = mydata1$status)
+###Plotting Kaplan-Meier survival curves for three member types-full-time, student and associate
+fit2<- survfit(surv_object~schoold,data = mydata1)
+ ggsurv<-ggsurvplot(fit2,
+   data=mydata1,
+   legend.title="Variation across school district regions",
+   legend.labs=c("Fraser Valley","Kootenays","Northeast","Okanagan/Mainline","Vancouver Island",
+                 "Greater Victoria","Metro/Coast","Northwest","Thompson Country"),
+   conf.int=TRUE,
+   pval=TRUE,
+   ggtheme=theme_light(),
+   risk.table=TRUE,
+   risk.table.height=0.35,
+   risk.table.y.text.col=T,
+   risk.table.y.text=FALSE,
+   tables.theme=theme_cleantable(),
+   surv.median.line="hv")
+
+
+
+
+###The variables city_home, address_home and postal_code are used along with Canadian Postal Code,
+###Google Maps,Statistics Canada's Focus on Geography Series 2016 and Human Early Learning Partnership 
+###defined neighborhoods to create a crosswalk of census subdivisions and school district regions that are merged 
+###with the original ECEBC database.
+
+###Loading database on childcare facilities and cleaning it before merging
+cc<-read.csv("cc.csv",strip.white = TRUE,stringsAsFactors =FALSE)
+###Dropping irrelevant columns
+cc<-cc[,-(8:45)]
+cc<-cc[,-(1)]
+cc<-cc[,-(2:4)]
+cc$CITY<-sapply(cc$CITY, toupper)
+###Cleaning names.Since now have census subdivision boundaries from before, use those 
+###to clean city names for childcare facilities(using postal code, address and city_name) to obtain census subdivisions. 
+cc$CITY[cc$CITY=="BUICK"]<-"PEACE RIVER B"
+cc$CITY[cc$CITY=="FORT ST. JAMES"]<-"FORT ST JAMES"
+cc$CITY[cc$CITY=="FORT ST. JOHN"]<-"FORT ST JOHN"
+cc$CITY[cc$CITY=="ROSEDALE"]<-"CHILLIWACK"
+cc$CITY[cc$CITY=="QUADRA ISLAND"]<-"QUATHIASKI COVE"
+cc$CITY[cc$CITY=="WARE"]<-"FORT WARE"
+cc$CITY[cc$CITY=="108 MILE RANCH"]<-"CARIBOO G"
+cc$CITY[cc$CITY=="150 MILE HOUSE"]<-"CARIBOO F"
+cc$CITY[cc$CITY=="ATLIN"]<-"STIKINE REGION"
+cc$CITY[cc$CITY=="ALDERGROVE"]<-"LANGLEY D"
+cc$CITY[cc$CITY=="BELLA COOLA"]<-"CENTRAL COAST E"
+cc$CITY[cc$CITY=="BLACK CREEK"]<-"COMOX VALLEY C"
+cc$CITY[cc$CITY=="BLIND BAY"]<-"COLUMBIA-SHUSWAP C"
+cc$CITY[cc$CITY=="BONNINGTON"]<-"CENTRAL KOOTENAY F"
+cc$CITY[cc$CITY=="BRACKENDALE"]<-"SQUAMISH"
+cc$CITY[cc$CITY=="BRENTWOOD BAY"]<-"CENTRAL SAANICH"
+cc$CITY[cc$CITY=="BUICK CREEK"]<-"PEACE RIVER B"
+cc$CITY[cc$CITY=="CANIM LAKE"]<-"CARIBOO H"
+cc$CITY[cc$CITY=="CHARLIE LAKE"]<-"PEACE RIVER C"
+cc$CITY[cc$CITY=="CHEMAINUS"]<-"NORTH COWICHAN"
+cc$CITY[cc$CITY=="COAL HARBOUR"]<-"MOUNT WADDINGTON C"
+cc$CITY[cc$CITY=="COBBLE HILL"]<-"COWICHAN VALLEY C"
+cc$CITY[cc$CITY=="COOMBS"]<-"NANAIMO F"
+cc$CITY[cc$CITY=="COWICHAN BAY"]<-"COWICHAN VALLEY D"
+cc$CITY[cc$CITY=="CRESCENT VALLEY"]<-"CENTRAL KOOTENAY H"
+cc$CITY[cc$CITY=="CROFTON"]<-"NORTH COWICHAN"
+cc$CITY[cc$CITY=="CULTUS LAKE"]<-"FRASER VALLEY H"
+cc$CITY[cc$CITY=="D'ARCY"]<-"NEQUATQUE"
+cc$CITY[cc$CITY=="DENMAN ISLAND"]<-"COMOX VALLEY A"
+cc$CITY[cc$CITY=="ERRINGTON"]<-"NANAIMO F"
+cc$CITY[cc$CITY=="FANNY BAY"]<-"COMOX VALLEY A"
+cc$CITY[cc$CITY=="FORT NELSON"]<-"NORTHERN ROCKIES"
+cc$CITY[cc$CITY=="FORT WARE"]<-"FORT WARE 1"
+cc$CITY[cc$CITY=="GABRIOLA"]<-"NANAIMO B"
+cc$CITY[cc$CITY=="GARIBALDI HIGHLANDS"]<-"SQUAMISH"
+cc$CITY[cc$CITY=="GREENVILLE"]<-"NISGA'A"
+cc$CITY[cc$CITY=="HALFMOON BAY"]<-"SUNSHINE COAST B"
+cc$CITY[cc$CITY=="HORNBY ISLAND"]<-"COMOX VALLEY A"
+cc$CITY[cc$CITY=="KALEDEN"]<-"OKANAGAN SIMILKAMEEN D"
+cc$CITY[cc$CITY=="KITAMAAT VILLAGE"]<-"KITIMAT-STIKINE C(2)"
+cc$CITY[cc$CITY=="KITWANGA"]<-"GITWANGAK 1"
+cc$CITY[cc$CITY=="LAZO"]<-"COMOX"
+cc$CITY[cc$CITY=="MILL BAY"]<-"COWICHAN VALLEY A"
+cc$CITY[cc$CITY=="MOBERLY LAKE"]<-"PEACE RIVER E"
+cc$CITY[cc$CITY=="NANOOSE BAY"]<-"NANAIMO E"
+cc$CITY[cc$CITY=="OKANAGAN FALLS"]<-"OKANAGAN-SIMILKAMMEN D"
+cc$CITY[cc$CITY=="OYAMA"]<-"LAKE COUNTRY"
+cc$CITY[cc$CITY=="QUATHIASKI COVE"]<-"STRATHCONA C"
+cc$CITY[cc$CITY=="ROBERTS CREEK"]<-"SUNSHINE COAST D"
+cc$CITY[cc$CITY=="ROBSON"]<-"CENTRAL KOOTENAY J"
+cc$CITY[cc$CITY=="ROYSTON"]<-"COMOX VALLEY A"
+cc$CITY[cc$CITY=="SAANICHTON"]<-"CENTRAL SAANICH"
+cc$CITY[cc$CITY=="SHAWNIGAN LAKE"]<-"COWICHAN VALLEY B"
+cc$CITY[cc$CITY=="SKIDEGATE"]<-"SKIDEGATE 1"
+cc$CITY[cc$CITY=="SORRENTO"]<-"COLUMBIA-SHUSWAP C"
+cc$CITY[cc$CITY=="SOUTH SLOCAN"]<-"CENTRAL KOOTENAY H"
+cc$CITY[cc$CITY=="TAPPEN"]<-"COLUMBIA-SHUSWAP C"
+cc$CITY[cc$CITY=="THORNHILL"]<-"KITIMAT-STIKINE E"
+cc$CITY[cc$CITY=="WESTBANK"]<-"WEST KELOWNA"
+cc$CITY[cc$CITY=="WHITE ROCK"]<-"SURREY"
+cc$CITY[cc$CITY=="WINFIELD"]<-"LAKE COUNTRY"
+cc$CITY[cc$CITY=="WINLAW"]<-"CENTRAL KOOTENAY H"
+cc$CITY[cc$CITY=="YOUBOU"]<-"COWICHAN VALLEY I"
+cc$CITY[cc$CITY=="OKANAGAN-SIMILKAMMEN D"]<-"OKANAGAN-SIMILKAMEEN D"
+cc$CITY[cc$CITY=="OKANAGAN SIMILKAMEEN D"]<-"OKANAGAN-SIMILKAMEEN D"
+cc$CITY[cc$CITY=="MADEIRA PARK"]<-"SUNSHINE COAST A"
+cc$CITY[cc$CITY=="PENDER ISLAND"]<-"SOUTHERN GULF ISLANDS"
+
+cc%>%filter(CITY=="COQUITLAM")%>%select(POSTAL_CODE)
+
+##dropping areas that have no licensed childcare facilities
+cc<-cc[cc$CITY!="HARRISON HOT SPRINGS" & cc$CITY!="HITACU" &
+         cc$CITY!="KEREMEOS" & cc$CITY!="LOGAN LAKE" & cc$CITY!="LUND" &
+         cc$CITY!="MCLEOD LAKE" & cc$CITY!="METLAKATLA"& cc$CITY!= "NARAMATA" &
+         cc$CITY!="OSOYOOS" & cc$CITY!="RADIUM HOT SPRINGS" &
+         cc$CITY!= "SUN PEAKS" & cc$CITY!="TAHSIS" & cc$CITY!= "VALEMOUNT" &
+         cc$CITY!="WELLS" & cc$CITY!="WINDERMERE"& cc$CITY!="YARROW" &
+         cc$CITY!="ALERT BAY" & cc$CITY!= "ANMORE" & cc$CITY!="BAMFIELD" &
+         cc$CITY!="CHERRYVILLE" & cc$CITY!= "CHRISTINA LAKE"& cc$CITY!= "EDGEWATER" &
+         cc$CITY!="FALKLAND" &
+         cc$CITY!="ELKFORD"& cc$CITY!="GALIANO ISLAND" & cc$CITY!="GITANYOW"&
+         cc$CITY!="NEW DENVER" & cc$CITY!="TSAWWASSEN",]
+cc<-cc[cc$POSTAL_CODE!="V2G 5L4" & cc$POSTAL_CODE!="V2G 5K9",]
+
+
+###Correcting postal code errors and assigning areas to correct census subdivisions.
+###From ECEBC database most of the mislabelling occurred with placing Langley city 
+###and district munucipality as Langley and treating North Vancouver city and North
+###Vancouver district municipality as one. Other errors include putting together 
+###regional district electoral areas with the main city although they are separate 
+###census subdivisions. So checking these areas for cleaning.
+cc%>%filter(CITY=="LANGLEY") %>% select(POSTAL_CODE)
+cc$CITY <- with(cc, ifelse(grepl("^V1M",POSTAL_CODE),"LANGLEY D",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V2Y",POSTAL_CODE),"LANGLEY D",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V3A",POSTAL_CODE),"LANGLEY C",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V2Z",POSTAL_CODE),"LANGLEY D",CITY))
+
+cc%>%filter(CITY=="NORTH VANCOUVER")%>%select(POSTAL_CODE)
+###North Vancouver city:
+cc$CITY <- with(cc, ifelse(grepl("^V7M",POSTAL_CODE),"NORTH VANCOUVER C",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V7L",POSTAL_CODE),"NORTH VANCOUVER C",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V7P",POSTAL_CODE),"NORTH VANCOUVER C",CITY))
+###North Vancouver dm
+cc$CITY <- with(cc, ifelse(grepl("^V7G",POSTAL_CODE),"NORTH VANCOUVER D",CITY))
+cc$CITY<- with(cc, ifelse(grepl("^V7J",POSTAL_CODE),"NORTH VANCOUVER D",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V7K",POSTAL_CODE),"NORTH VANCOUVER D",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V7H",POSTAL_CODE),"NORTH VANCOUVER D",CITY))
+cc$CITY <- with(cc, ifelse(grepl("^V7N",POSTAL_CODE),"NORTH VANCOUVER D",CITY))
+cc$CITY<- with(cc, ifelse(grepl("^V7R",POSTAL_CODE),"NORTH VANCOUVER D",CITY))
+
+cc%>%filter(CITY=="NANAIMO")%>%select(POSTAL_CODE)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V0R 2H0","LANTZVILLE",cc$CITY)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V9X 1L4"|cc$POSTAL_CODE=="V9X 1K2"|
+                  cc$POSTAL_CODE=="V9X 1S4"|cc$POSTAL_CODE=="V9X 1W1"|cc$POSTAL_CODE=="V9X 1L6","NANAIMO A",
+                ifelse(cc$POSTAL_CODE=="V9R 7C7","NANAIMO C",
+                       ifelse(cc$POSTAL_CODE=="V9R 6V7"|cc$POSTAL_CODE=="V9R 6V6","NANAIMO D",cc$CITY)))
+
+cc%>%filter(CITY=="PORT ALBERNI")%>%select(POSTAL_CODE)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V9Y 9E6","ALBERNI-CLAYOQUOT D",
+                ifelse(cc$POSTAL_CODE=="V9Y 8X4","ALBERNI-CLAYOQUOT E",
+                       ifelse(cc$POSTAL_CODE=="V9Y 8P2","ALBERNI-CLAYOQUOT F",cc$CITY)))
+
+cc%>%filter(CITY=="CAMPBELL RIVER")%>%select(POSTAL_CODE)
+cc%>%filter(CITY=="CHILLIWACK")%>%select(POSTAL_CODE)
+cc%>%filter(CITY=="KELOWNA")%>%select(POSTAL_CODE)
+
+cc$CITY<-with(cc,ifelse(grepl("^V4T",POSTAL_CODE), "WEST KELOWNA", CITY))
+cc$CITY<-with(cc,ifelse(grepl("^V1Z",POSTAL_CODE), "WEST KELOWNA", CITY))
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V1W 4A7"|cc$POSTAL_CODE=="V1W 4L6"|
+                  cc$POSTAL_CODE=="V1X 6P1","CENTRAL OKANAGAN", cc$CITY)
+
+cc%>%filter(CITY=="NORTH SAANICH")%>%select(POSTAL_CODE)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V8Z 4K9","SAANICH",cc$CITY)
+cc%>%filter(CITY=="POWELL RIVER")%>%select(POSTAL_CODE)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V8A 0B6","SLIAMMON 1",cc$CITY)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V8A 0R2","POWELL RIVER B", cc$CITY)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V8A 0N7","POWELL RIVER C", cc$CITY)
+cc<-cc[cc$CITY!="POWELL RIVER B" & cc$CITY!="POWELL RIVER C",]
+cc%>%filter(CITY=="QUESNEL")%>%select(POSTAL_CODE)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V2J 5A1"|cc$POSTAL_CODE=="V2J 6C8"|
+                  cc$POSTAL_CODE=="V2J 3X1","CARIBOO A",cc$CITY)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V2J 7B3","CARIBOO B", cc$CITY)
+cc%>%filter(CITY=="VANCOUVER")%>%select(POSTAL_CODE)
+cc$CITY<-with(cc,ifelse(grepl("^V6T",POSTAL_CODE),"GREATER VANCOUVER A",CITY))
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V6N 4C4","MUSQUEAM 2",cc$CITY)
+cc%>%filter(CITY=="VERNON")%>%select("POSTAL_CODE")
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V1B 3J5","NORTH OKANAGAN C",cc$CITY)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V1T 9M2","NORTH OKANAGAN C",cc$CITY)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V1B 2J3","NORTH OKANAGAN C",cc$CITY)
+cc$CITY<-ifelse(cc$POSTAL_CODE=="V1H 1N3","NORTH OKANAGAN B",cc$CITY)
+
+cc$CITY<-with(cc,ifelse(grepl("^V4W",POSTAL_CODE),"LANGLEY D",CITY))
+cc$CITY<-with(cc,ifelse(grepl("V3C",POSTAL_CODE),"PORT COQUITLAM",CITY))
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9R 6V7"|POSTAL_CODE=="V9R 6V6","NANAIMO C",CITY))
+
+###Many areas in the Victoria, Saanich, Central Saanich, Langford, Colwood, Metchosin
+###and Esquimalt area are all labelled as Victoria. Relabelling them using Statistics 
+###Canada's census subdivision boundaries.
+cc%>%filter(CITY=="VICTORIA")%>%select(POSTAL_CODE)
+cc$CITY<-with(cc, ifelse(POSTAL_CODE=="V8X 1W4"|
+                           POSTAL_CODE== "V8P 4P2"|
+                           POSTAL_CODE== "V8N 4A2"|
+                           POSTAL_CODE== "V9E 2C1"|
+                           POSTAL_CODE=="V8P 2M6"|
+                           POSTAL_CODE=="V8R 4V1"|
+                           POSTAL_CODE=="V8Y 2K8"|
+                           POSTAL_CODE=="V8Z 6G2"|
+                           POSTAL_CODE=="V8P 3Z4"|
+                           POSTAL_CODE=="V8Y 2L2"|
+                           POSTAL_CODE=="V8Z 6B1"|
+                           POSTAL_CODE=="V8P 4X3"|
+                           POSTAL_CODE=="V8X 5K6"|
+                           POSTAL_CODE=="V8N 2A5"|
+                           POSTAL_CODE=="V8X 3T7"|
+                           POSTAL_CODE=="V8N 3S9"|
+                           POSTAL_CODE=="V9A 6T2"|
+                           POSTAL_CODE=="V8X 3S6"|
+                           POSTAL_CODE=="V8Y 1J9"|
+                           POSTAL_CODE=="V9A 1J3"|
+                           POSTAL_CODE=="V8X 1G8"|
+                           POSTAL_CODE=="V8Z 2E7"|
+                           POSTAL_CODE=="V8Z 6R9"|
+                           POSTAL_CODE=="V8P 1X4"|
+                           POSTAL_CODE=="V9A 1K3"|
+                           POSTAL_CODE=="V8Z 1S6"|
+                           POSTAL_CODE=="V8X 2W2"|
+                           POSTAL_CODE=="V8Y 1B6"|
+                           POSTAL_CODE=="V8Z 6M8"|
+                           POSTAL_CODE=="V8Z 6V6"|
+                           POSTAL_CODE== "V8Z 3Z3"|
+                           POSTAL_CODE=="V8Z 6S9"|
+                           POSTAL_CODE=="V8Z 6S1"|
+                           POSTAL_CODE=="V8Z 1Z2"|
+                           POSTAL_CODE=="V8Z 7A2"|
+                           POSTAL_CODE=="V8Z 6G8"|
+                           POSTAL_CODE=="V8Z 2G8"|
+                           POSTAL_CODE=="V8N 2E3"|
+                           POSTAL_CODE=="V8N 2G2"|
+                           POSTAL_CODE=="V8Z 7A5"|
+                           POSTAL_CODE=="V8N 3R9"|
+                           POSTAL_CODE=="V8Z 3A4"|
+                           POSTAL_CODE=="V8Z 3E8"|
+                           POSTAL_CODE=="V8Z 4Y5"|
+                           POSTAL_CODE=="V8N 4B6"|
+                           POSTAL_CODE=="V8N 5K9"|
+                           POSTAL_CODE=="V8Y 3K4"|
+                           POSTAL_CODE=="V8X 2X5"|
+                           POSTAL_CODE=="V9B 3R2"|
+                           POSTAL_CODE=="V9A 2A8","SAANICH",cc$CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8Z 1V5"|
+                          POSTAL_CODE=="V8R 3C9"|
+                          POSTAL_CODE=="V8P 4C9"|
+                          POSTAL_CODE=="V8P 5K7"|
+                          POSTAL_CODE=="V8P 3C9"|
+                          POSTAL_CODE=="V8P 4J2"|
+                          POSTAL_CODE=="V8N 4M6"|
+                          POSTAL_CODE=="V8P 4G2"|
+                          POSTAL_CODE=="V8Z 2S1"|
+                          POSTAL_CODE=="V8N 6K8"|
+                          POSTAL_CODE=="V8N 1P3"|
+                          POSTAL_CODE=="V8P 1M2"|
+                          POSTAL_CODE=="V8Z 4N4"|
+                          POSTAL_CODE=="V8P 3G8"|
+                          POSTAL_CODE=="V9A 1W5"|
+                          POSTAL_CODE=="V9A 1E7"|
+                          POSTAL_CODE=="V8P 3W5"|
+                          POSTAL_CODE=="V9C 4J7"|
+                          POSTAL_CODE=="V8X 3L2"|
+                          POSTAL_CODE=="V8Z 4X8"|
+                          POSTAL_CODE=="V8N 4A6"|
+                          POSTAL_CODE=="V8X 3P7"|
+                          POSTAL_CODE=="V8X 1C4"|
+                          POSTAL_CODE=="V8T 4G2"|
+                          POSTAL_CODE=="V8Z 7X7"|
+                          POSTAL_CODE=="V8N 4A8"|
+                          POSTAL_CODE=="V8Z 5K9"|
+                          POSTAL_CODE=="V8Z 5K5"|
+                          POSTAL_CODE=="V8Z 3H5"|
+                          POSTAL_CODE=="V8X 5L2"|
+                          POSTAL_CODE=="V8N 2H9"|
+                          POSTAL_CODE=="V9A 6T2"|
+                          POSTAL_CODE=="V8P 2S5"|
+                          POSTAL_CODE=="V8Z 4A2"|
+                          POSTAL_CODE=="V8Z 2E7"|
+                          POSTAL_CODE=="V8X 3N3"|
+                          POSTAL_CODE=="V8Z 7K2"|
+                          POSTAL_CODE=="V8N 1W2"|
+                          POSTAL_CODE=="V9A 2L4"|
+                          POSTAL_CODE=="V8Z 4R5"|
+                          POSTAL_CODE=="V8N 1P8"|
+                          POSTAL_CODE=="V9A 2C4"|
+                          POSTAL_CODE=="V9E 2G1"|
+                          POSTAL_CODE=="V8N 4A9"|
+                          POSTAL_CODE=="V8X 3L2"|
+                          POSTAL_CODE=="V8Z 4T5"|
+                          POSTAL_CODE=="V8P 3Y9"|
+                          POSTAL_CODE=="V8Z 1J6"|
+                          POSTAL_CODE=="V8P 3Y3"|
+                          POSTAL_CODE=="V8P 4J9","SAANICH",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE== "V8Z 5K2"|
+                          POSTAL_CODE=="V9B 6G6"|
+                          POSTAL_CODE=="V8N 3L3"|
+                          POSTAL_CODE=="V8Z 4G9"|
+                          POSTAL_CODE=="V8Z 1H3"|
+                          POSTAL_CODE=="V8X 1E5"|
+                          POSTAL_CODE=="V8Y 2W7"|
+                          POSTAL_CODE=="V9A 2E6"|
+                          POSTAL_CODE=="V9A 2A8"|
+                          POSTAL_CODE=="V9A 6T2"|
+                          POSTAL_CODE=="V8Z 0B9"|
+                          POSTAL_CODE=="V8P 4C1"|
+                          POSTAL_CODE=="V8Z 1M9"|
+                          POSTAL_CODE=="V8N 5R3"|
+                          POSTAL_CODE=="V8N 5G7"|
+                          POSTAL_CODE=="V8Z 3J2"|
+                          POSTAL_CODE=="V8Z 2Z4"|
+                          POSTAL_CODE=="V8Z 2C2"|
+                          POSTAL_CODE=="V8X 5L2"|
+                          POSTAL_CODE=="V8Y 2G3"|
+                          POSTAL_CODE=="V8Z 1N7"|
+                          POSTAL_CODE=="V9B 6W2"|
+                          POSTAL_CODE=="V8R 4T4"|
+                          POSTAL_CODE=="V8X 1M2"|
+                          POSTAL_CODE=="V8Z 3G8"|
+                          POSTAL_CODE=="V8N 2T7"|
+                          POSTAL_CODE=="V8P 4V8"|
+                          POSTAL_CODE=="V8Z 4H1"|
+                          POSTAL_CODE=="V9A 2K9"|
+                          POSTAL_CODE=="V8Z 2W7"|
+                          POSTAL_CODE=="V8Z 2H5"|
+                          POSTAL_CODE=="V8Z 4T2"|
+                          POSTAL_CODE=="V8Z 4J8"|
+                          POSTAL_CODE=="V8Z 1N7"|
+                          POSTAL_CODE=="V9E 1J9"|
+                          POSTAL_CODE=="V8Z 7X7","SAANICH",CITY))
+
+
+##colwood
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9C 4A4"|
+                          POSTAL_CODE=="V9C 3Z4"|
+                          POSTAL_CODE=="V9C 1H6"|
+                          POSTAL_CODE=="V9B 2K3"|
+                          POSTAL_CODE=="V9B 2A5"|
+                          POSTAL_CODE=="V9C 1K4"|
+                          POSTAL_CODE=="V9C 1R2"|
+                          POSTAL_CODE=="V9C 1K4"|
+                          POSTAL_CODE=="V9C 3V2"|
+                          POSTAL_CODE=="V9C 1R1"|
+                          POSTAL_CODE=="V9C 2A9"|
+                          POSTAL_CODE=="V9B 1J1"|
+                          POSTAL_CODE=="V9C 1P4"|
+                          POSTAL_CODE=="V9C 4J7"|
+                          POSTAL_CODE=="V9B 2A6"|
+                          POSTAL_CODE=="V9B 2B1"|
+                          POSTAL_CODE=="V9B 5Y1"|
+                          POSTAL_CODE=="V9B 1X1"|
+                          POSTAL_CODE=="V9B 2W3"|
+                          POSTAL_CODE=="V9B 2K3"|
+                          POSTAL_CODE=="V9C 2C3"|
+                          POSTAL_CODE=="V9C 4L3"|
+                          POSTAL_CODE=="V9B 1W8"|
+                          POSTAL_CODE=="V9B 2A6"|
+                          POSTAL_CODE=="V9B 1W8"|
+                          POSTAL_CODE=="V9B 3Y7"|
+                          POSTAL_CODE=="V9B 1J1"|
+                          POSTAL_CODE=="V9B 6X2"|
+                          POSTAL_CODE=="V9B 1W2"|
+                          POSTAL_CODE=="V9C 2R6"|
+                          POSTAL_CODE=="V9C 1J8"|
+                          POSTAL_CODE=="V9B 1J2","COLWOOD",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 1S6"|
+                          POSTAL_CODE=="V9B 1G4"|
+                          POSTAL_CODE=="V9B 1T9"|
+                          POSTAL_CODE=="V9B 1G5"|
+                          POSTAL_CODE=="V8Z 5C7"|
+                          POSTAL_CODE=="V9A 7M8"|
+                          POSTAL_CODE=="V9A 7M8"|
+                          POSTAL_CODE=="V8Z 1P7"|
+                          POSTAL_CODE=="V9B 6L9"|
+                          POSTAL_CODE=="V8Z 5G5"|
+                          POSTAL_CODE=="V8Z 1R7","VIEW ROYAL",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8S 3B9"|
+                          POSTAL_CODE=="V8R 5L7"|
+                          POSTAL_CODE=="V8R 1R3"|
+                          POSTAL_CODE=="V8R 5P8"|
+                          POSTAL_CODE=="V8S 4N3"|
+                          POSTAL_CODE=="V8R 6H9"|
+                          POSTAL_CODE=="V8R 5R8"|
+                          POSTAL_CODE=="V8S 5H3"|
+                          POSTAL_CODE=="V8R 5E6"|
+                          POSTAL_CODE=="V8R 5K2","OAK BAY",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 2Y2"|
+                          POSTAL_CODE=="V9B 2T6"|
+                          POSTAL_CODE=="V9B 3P7"|
+                          POSTAL_CODE=="V9B 3P8"|
+                          POSTAL_CODE=="V9B 3Z6"|
+                          POSTAL_CODE=="V9B 3L4"|
+                          POSTAL_CODE=="V9B 2Z8"|
+                          POSTAL_CODE=="V9B 2S9"|
+                          POSTAL_CODE=="V9B 6N8"|
+                          POSTAL_CODE=="V9B 3V7"|
+                          POSTAL_CODE=="V9B 3M5"|
+                          POSTAL_CODE=="V9B 5W4"|
+                          POSTAL_CODE=="V9B 0K9"|
+                          POSTAL_CODE=="V9B 0L9"|
+                          POSTAL_CODE=="V9B 5Z4"|
+                          POSTAL_CODE=="V9C 0E1"|
+                          POSTAL_CODE=="V9B 4G9"|
+                          POSTAL_CODE=="V9B 4T4"|
+                          POSTAL_CODE=="V9B 5X4"|
+                          POSTAL_CODE=="V9B 2Y2"|
+                          POSTAL_CODE=="V9B 2T8"|
+                          POSTAL_CODE=="V9B 2M9"|
+                          POSTAL_CODE=="V9B 4S5"|
+                          POSTAL_CODE=="V9B 2S3"|
+                          POSTAL_CODE=="V9B 1Y2"|
+                          POSTAL_CODE=="V9B 2P1"|
+                          POSTAL_CODE=="V9C 3C4"|
+                          POSTAL_CODE=="V9B 2N7"|
+                          POSTAL_CODE=="V9B 2Y2"|
+                          POSTAL_CODE=="V9B 5B2"|
+                          POSTAL_CODE=="V9B 2N7"|
+                          POSTAL_CODE=="V9B 5G3"|
+                          POSTAL_CODE=="V9B 3V3"|
+                          POSTAL_CODE=="V9B 6Y1"|
+                          POSTAL_CODE=="V9C 2P4"|
+                          POSTAL_CODE=="V9B 4V5"|
+                          POSTAL_CODE=="V9B 5S6"|
+                          POSTAL_CODE=="V9B 3R1"|
+                          POSTAL_CODE=="V9B 1Y3"|
+                          POSTAL_CODE=="V9B 1Y9"|
+                          POSTAL_CODE=="V9B 3A9"|
+                          POSTAL_CODE=="V9B 0J7"|
+                          POSTAL_CODE=="V9B 3R2"|
+                          POSTAL_CODE=="V9C 2P4"|
+                          POSTAL_CODE=="V9B 2T9","LANGFORD",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8Z 5V4"|
+                          POSTAL_CODE=="V8Z 5W7","CENTRAL SAANICH",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9A 6C7"|
+                          POSTAL_CODE=="V9A 4W4"|
+                          POSTAL_CODE=="V9A 5J7"|
+                          POSTAL_CODE=="V9A 2Y1"|
+                          POSTAL_CODE=="V9A 6H6"|
+                          POSTAL_CODE=="V9A 5K6"|
+                          POSTAL_CODE=="V9A 5S9"|
+                          POSTAL_CODE=="V9A 6H7"|
+                          POSTAL_CODE=="V9A 4W9"|
+                          POSTAL_CODE=="V9A 2N4"|
+                          POSTAL_CODE=="V9A 5K1"|
+                          POSTAL_CODE=="V9A 4Y1"|
+                          POSTAL_CODE=="V9A 4V7"|
+                          POSTAL_CODE=="V9A 4E6"|
+                          POSTAL_CODE=="V9A 5E2","ESQUIMALT",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9A 2R1","NEW SONGHEES 1A",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9B 6E2"|
+                          POSTAL_CODE=="V9B 6R6"|
+                          POSTAL_CODE=="V9B 0C4"|
+                          POSTAL_CODE=="V9B 6E2","HIGHLANDS",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V9C 4J9"|
+                          POSTAL_CODE=="V9C 3Z6"|
+                          POSTAL_CODE=="V9C 3Y7"|
+                          POSTAL_CODE=="V9C 4C6"|
+                          POSTAL_CODE=="V9C 3Y6"|
+                          POSTAL_CODE=="V9C 4G4","METCHOSIN",CITY))
+
+cc$CITY<-with(cc,ifelse(POSTAL_CODE=="V8L 1K5"|
+                          POSTAL_CODE=="V8L 1H7","NORTH SAANICH",CITY))
+
+cc$C<-as.factor(cc$CITY)
+levels(cc$C)
+###Adding up group and family childcare facilities in each census subdivision
+cc1<-cbind.data.frame(cc$SERVICE_TYPE_CD,cc$CITY)
+colnames(cc1)<-c("type","city")
+library(plyr)
+library(reshape2)
+library(tidyr)  ###to get gather to work in dplyr
+###Reshaping dataframe to obtain family and group childcare facilities in each census subdivision
+s<-cc1%>%
+  gather("type", "city") %>%
+  select(city, type) %>%
+  table()
+s<-as.data.frame(s)  
+###Creating separate dataframes for family and childcare facilities 
+family<-s[1:176,] ###family facilities are from rows 1 to 176
+group<-s[177:352,] ###group childcare facilities are from rows 177 onwards
+levels(family$city)[levels(family$city)=="100 MILE HOUSE"]<-"ONE HUNDRED MILE HOUSE"
+levels(group$city)[levels(group$city)=="100 MILE HOUSE"]<-"ONE HUNDRED MILE HOUSE"
+colnames(family)<-c("csd","t_f","freq_f")
+colnames(group)<-c("csd","t_g","freq_g")
+
+###Matching childcare facilities to ECEBC database by census subdivision and merging
+mydata1$freq_f<-NA
+mydata1$freq_g<-NA
+mydata1$freq_f<-family[match(paste(mydata1$csd),paste(family$csd)),"freq_f"]
+mydata1$freq_g<-group[match(paste(mydata1$csd),paste(group$csd)),"freq_g"]
+###Total number of licensed childcare facilities
+mydata1$license_cc<-mydata1$freq_f+mydata1$freq_g
+
+###Branch membership
+###A crosswalk of csds with branches is created and merged with original ECEBC database
+###Csds with a branch is given a value of 1 while csds without are given a value of 0.
+branch<-read.csv("branch.csv")
+mydata1$branch<-NA
+mydata1$branch<-branch[match(paste(mydata1$csd),paste(branch$csd)),"branch"]
+mydata1$branch[is.na(mydata1$branch)]<-0
+###Branch names are also merged with dataset
+mydata1$branch_name<-NA
+mydata1$branch_name<-branch[match(paste(mydata1$csd),paste(branch$csd)),"branch_name"]
+
+
+###School data 
+
+school<-read.csv("school1.csv",strip.white=TRUE,stringsAsFactors = FALSE)
+school$s<-as.factor(school$csd)
+levels(school$s)
+school[is.na(school)] <- 0
+nuba1<-merge(nuba1,school,all=TRUE) 
+nuba1$SS[is.na(nuba1$SS)]<-0
+nuba1$SS_O[is.na(nuba1$SS_O)] <- 0
+###Giving full-time strongstart facilities full weight and part-time strongstart 
+###facilities half the weight
+nuba1$sts<-nuba1$SS+(nuba1$SS_O)*0.5
+
+
+nuba1$J7<-NA
+nuba1$J8<-NA
+nuba1$J9<-NA
+nuba1$J10<-NA
+nuba1$D10<-NA ##cc & den
+nuba1$J11<-NA
+nuba1$J12<-NA
+nuba1$J13<-NA
+nuba1$J14<-NA
+nuba1$Ja15<-NA 
+nuba1$M15<-NA 
+nuba1$J15<-NA
+nuba1$D15<-NA 
+nuba1$Ja16<-NA 
+nuba1$M16<-NA  
+nuba1$J16<-NA
+nuba1$S16<-NA 
+nuba1$Ja17<-NA 
+nuba1$M17<-NA
+nuba1$J17<-NA
+nuba1$S17<-NA 
+nuba1$Ja18<-NA 
+nuba1$M18<-NA 
+
+nuba1$J7<-ifelse(nuba1$csd=="FERNIE"|
+                   nuba1$csd=="VERNON"|
+                   nuba1$csd=="WILLIAMS LAKE"|
+                   nuba1$csd=="ABBOTSFORD"|
+                   nuba1$csd=="LANGLEY C"|
+                   nuba1$csd=="LANGLEY D"|
+                   nuba1$csd=="PORT MOODY"|
+                   nuba1$csd=="PORT COQUITLAM"|
+                   nuba1$csd=="ESQUIMALT"|
+                   nuba1$csd=="KAMLOOPS"|
+                   nuba1$csd=="MISSION"|
+                   nuba1$csd=="YALE"| 
+                   nuba1$csd=="DUNCAN","2007-06-30",nuba1$J7)
+
+nuba1$J7<-ifelse(nuba1$csd=="VERNON" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="WILLIAMS LAKE" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="ABBOTSFORD" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="LANGLEY C" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="LANGLEY D" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="PORT MOODY" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="PORT COQUITLAM" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="ESQUIMALT" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="NANAIMO" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="KAMLOOPS" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="MISSION" & nuba1$joined_date>"2007-06-30"|
+                   nuba1$csd=="YALE" & nuba1$joined_date>"2007-06-30"| 
+                   nuba1$csd=="DUNCAN" & nuba1$joined_date>"2007-06-30",NA,nuba1$J7)
+
+###2008
+
+nuba1$J8<-ifelse(nuba1$csd=="CRANBROOK" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="SPARWOOD" & nuba1$joined_date<="2008-06-30"|
+                        
+                        nuba1$csd=="LANGLEY D" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="NANAIMO" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="MISSION" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="NELSON" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="PRINCE RUPERT" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="TELKWA" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="LANGFORD" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="CENTRAL SAANICH"& nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="NORTH SAANICH" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="COURTENAY" & nuba1$joined_date<="2008-06-30"|
+                        nuba1$csd=="COMOX" & nuba1$joined_date<="2008-06-30",
+                      "2008-06-30",nuba1$J8)
+
+###year 2009
+
+nuba1$J9<-ifelse(nuba1$csd=="SURREY" & nuba1$joined_date<="2009-06-30"|
+                        nuba1$csd=="DELTA" & nuba1$joined_date<="2009-06-30"|
+                        nuba1$csd=="ASHCROFT" & nuba1$joined_date<="2009-06-30",
+                      "2009-06-30",nuba1$J9)
+
+###year 2010
+
+nuba1$J10<-ifelse(nuba1$csd=="LANGLEY D" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="KAMLOOPS" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="PORT HARDY" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="SURREY" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="BURNS LAKE" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="MAPLE RIDGE" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="NORTH VANCOUVER D" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="PRINCE GEORGE" & nuba1$joined_date<="2010-06-30"|
+                    nuba1$csd=="TERRACE" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="DAWSON CREEK" & nuba1$joined_date<="2010-06-30"|
+                         nuba1$csd=="KITIMAT-STIKINE B" & nuba1$joined_date<="2010-06-30","2010-06-30",nuba1$J10)
+
+nuba1$D10<- ifelse(nuba1$joined_date<="2010-12-31","2010-12-31",nuba1$D10)
+
+
+
+###2011 
+nuba1$J11<-ifelse(nuba1$csd=="ABBOTSFORD" & nuba1$joined_date<="2011-06-30"|
+                         nuba1$csd=="MISSION" & nuba1$joined_date<="2011-06-30"|
+                         nuba1$csd=="PRINCE RUPERT" & nuba1$joined_date<="2011-06-30"|
+                         nuba1$csd=="NORTH VANCOUVER C" & nuba1$joined_date<="2011-06-30"|
+                         nuba1$csd=="PRINCE GEORGE" & nuba1$joined_date<="2011-06-30"|
+                         nuba1$csd== "KITIMAT" & nuba1$joined_date<="2011-06-30",
+                       "2011-06-30",nuba1$J11)
+
+
+###2012
+nuba1$J12<-ifelse(
+  nuba1$csd=="CENTRAL KOOTENAY K" & nuba1$joined_date<="2012-06-30","2012-06-30",nuba1$J12)
+##2013
+nuba1$J13<-ifelse(nuba1$csd=="NANAIMO A" & nuba1$joined_date<="2013-06-30"|
+                         nuba1$csd=="COWICHAN VALLEY C" & nuba1$joined_date<="2013-06-30"|
+                         nuba1$csd=="COWICHAN VALLEY I" & nuba1$joined_date<="2013-06-30"|
+                         nuba1$csd=="DUNCAN" & nuba1$joined_date<="2013-06-30"|
+                         nuba1$csd=="LAKE COWICHAN" & nuba1$joined_date<="2013-06-30"|
+                         nuba1$csd=="QUESNEL" & nuba1$joined_date<="2013-06-30"|
+                         nuba1$csd=="ONE HUNDRED MILE HOUSE" & nuba1$joined_date<="2013-06-30"|
+                         nuba1$csd=="WILLIAMS LAKE" & nuba1$joined_date<="2013-06-30",
+                       "2013-06-30",nuba1$J13)
+##2014
+
+nuba1$J14<-ifelse(nuba1$csd=="VICTORIA" & nuba1$joined_date<="2014-06-30"|
+                         nuba1$csd=="LADYSMITH" & nuba1$joined_date<="2014-06-30"|
+                         nuba1$csd=="VANDERHOOF" & nuba1$joined_date<="2014-06-30"|
+                         nuba1$csd=="NEW WESTMINSTER" & nuba1$joined_date<="2014-06-30"|
+                         nuba1$csd=="NANAIMO F" & nuba1$joined_date<="2014-06-30"|
+                         nuba1$csd=="PARKSVILLE" & nuba1$joined_date<="2014-06-30"|
+                         nuba1$csd=="QUALICUM BEACH" & nuba1$joined_date<="2014-06-30",
+                       "2014-06-30",nuba1$J14)
+
+##2015
+nuba1$J15<-ifelse(nuba1$csd=="WILLIAMS LAKE" & nuba1$joined_date<="2015-06-30"|
+                         nuba1$csd=="LANGLEY C" & nuba1$joined_date<="2015-06-30"|
+                         nuba1$csd=="ASHCROFT" & nuba1$joined_date<="2015-06-30"|
+                         nuba1$csd=="BULKLEY-NECHAKO D" & nuba1$joined_date<="2015-06-30"|
+                         nuba1$csd=="FORT ST JAMES" & nuba1$joined_date<="2015-06-30"|
+                         nuba1$csd=="PORT ALBERNI" & nuba1$joined_date<="2015-06-30",
+                       "2015-06-30",nuba1$J15)
+
+
+
+nuba1$D15<-with(nuba1,ifelse(joined_date<="2015-12-31","2015-12-31",D15))
+###2016
+nuba1$J16<-ifelse(nuba1$csd=="NANAIMO A" & nuba1$joined_date<="2016-06-30"|
+                         nuba1$csd=="SMITHERS" & nuba1$joined_date<="2016-06-30"|
+                         nuba1$csd=="QUESNEL" & nuba1$joined_date<="2016-06-30",
+                       "2016-06-30",nuba1$J16)
+
+###2017
+nuba1$J17<-with(nuba1,ifelse(csd=="CAMPBELL RIVER" & joined_date<="2017-06-30","2017-06-30",J17))
+
+nuba1$J7<-as.Date(nuba1$J7)
+nuba1$J8<-as.Date(nuba1$J8)
+nuba1$J9<-as.Date(nuba1$J9)
+nuba1$J10<-as.Date(nuba1$J10)
+nuba1$D10<-as.Date(nuba1$D10)
+nuba1$J11<-as.Date(nuba1$J11)
+nuba1$J12<-as.Date(nuba1$J12)
+nuba1$J13<-as.Date(nuba1$J13)
+nuba1$J14<-as.Date(nuba1$J14)
+
+
+nuba1$J15<-as.Date(nuba1$J15)
+nuba1$D15<-as.Date(nuba1$D15)
+
+nuba1$J16<-as.Date(nuba1$J16)
+
+nuba1$J17<-as.Date(nuba1$J17)
+nuba1$j7<-as.integer(nuba1$J7-nuba1$joined_date)
+nuba1$j8<-as.integer(nuba1$J8-nuba1$joined_date)
+nuba1$j9<-as.integer(nuba1$J9-nuba1$joined_date)
+nuba1$j10<-as.integer(nuba1$J10-nuba1$joined_date)
+nuba1$d10<-as.integer(nuba1$D10-nuba1$joined_date)
+nuba1$j11<-as.integer(nuba1$J11-nuba1$joined_date)
+nuba1$j12<-as.integer(nuba1$J12-nuba1$joined_date)
+nuba1$j13<-as.integer(nuba1$J13-nuba1$joined_date)
+nuba1$j14<-as.integer(nuba1$J14-nuba1$joined_date)
+
+nuba1$j15<-as.integer(nuba1$J15-nuba1$joined_date)
+nuba1$d15<-as.integer(nuba1$D15-nuba1$joined_date)
+
+nuba1$j16<-as.integer(nuba1$J16-nuba1$joined_date)
+
+nuba1$j17<-as.integer(nuba1$J17-nuba1$joined_date)
+
+
+###Looping over rows to correctly assign at which month a particular tstop 
+###occurs. For the first month, tstop/30 gives the correct month
+###but for months afterwards the formula underneath helps. 
+for(i in 1:nrow(nuba1_l)){
+  if(nuba1_l$mth[i]>1){
+     nuba1_l$Mth[i]<-(nuba1_l$tstop[i]/30)+(nuba1_l$mth[i]-1)
+  }else{
+    nuba1_l$Mth[i]<-(nuba1_l$tstop[i]/30)
+  }
+}
+###Fixing up Mth for any decimals
+nuba1_l$Mth<-ceiling(nuba1_l$Mth)
+###Extended Cox model
+fit_tvc <- coxph( Surv(tstart, tstop, status) ~ member+ bursary+branch_csd+
+                school +sts+license_cc, method="efron",data=nuba1_lf)
+###Cox model for time-fixed covariates, Schoenfeld residuals and dfbeta values
+tv_fit1<- coxph(Surv(days,status4) ~factor(member.t)+ sts+branch_csd+factor(csd_type)+
+                  license_cc+cluster(csd),method="efron",data=nuba5) ###you don't fit this to nuba2
+####Now you do proportionality test
+###First plot against time and then log(t)
+viol_t<-cox.zph(tv_fit1,transform="identity")
+viol_t
+plot(viol_t[11],xlab="TIME IN DAYS",ylab="BETA(t)-LICENSED FACILITIES")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[11])
+
+###strongstart
+plot(viol_t[3],xlab="TIME IN DAYS",ylab="BETA(t)-STRONGSTART")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[3])
+
+###full-time member
+plot(viol_t[1],xlab="TIME IN DAYS",ylab="BETA(t)-FULL-TIME MEMBER")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[1])
+
+###log(t)
+viol_log<-cox.zph(tv_fit1,transform="log")
+viol_log
+###licensed childcare facilities
+plot(viol_log[11],xlab="LOG-TIME",ylab="BETA(t)-LICENSED FACILITIES")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[11])
+
+
+###strongstart
+plot(viol_log[3],xlab="LOG-TIME",ylab="BETA(t)-STRONGSTART")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[3])
+
+
+###full-time member
+plot(viol_log[1],xlab="LOG-TIME",ylab="BETA(t)-FULL-TIME MEMBER")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[1])
+
+
+###violation of proportional hazards-km fit
+viol_km<-cox.zph(tv_fit1)
+viol_km
+
+###licensed facilities
+plot(viol_km[11],xlab="TIME IN DAYS",ylab="BETA(t)-LICENSED FACILITIES")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[11])
+
+##strongstart
+plot(viol_km[3],xlab="TIME IN DAYS",ylab="BETA(t)-STRONGSTART")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[3])
+
+###childcare
+plot(viol_km[1],xlab="TIME IN DAYS",ylab="BETA(t)-FULL-TIME MEMBER")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[1])
+
+install.packages("stargazer")
+library(stargazer)
+stargazer(tv_fito)
+###these are just the Schoenfield residuals
+sresids <- residuals(tv_fito, type="scaledsch" )
+
+colnames( sresids ) <- names( tv_fit$coef )
+time <- as.numeric( rownames( sresids ) )
+ plot( time, sresids[,4], xlab="Time",
+        ylab="Scaled Schoenfeld Residual (strongstart)" )
+ lines( smooth.spline( time, sresids[,4] ), col="red", lwd=2 )
+plot( time, sresids[,13], xlab="Time",
+        ylab="Scaled Schoenfeld Residual (Licensed childcare facilities)" )
+lines( smooth.spline( time, sresids[,13] ), col="red", lwd=2 )
+
+viol1<-cox.zph(tv_fito, transform="identity" ) 
+viol2<-cox.zph(tv_fito, transform="log" )
+plot(viol2[13], xlab="Time to renewal in days")
+abline(h=0,lty=3)
+abline(h=coef(tv_fito)[13])
+
+###log time transformation
+stargazer(viol1$table,viol2$table,viol3$table)
+
+plot(viol1)
+plot(viol2)
+
+
+viol.coxph<-cox.zph(tv_fito)
+
+###For any outliers use deviance residuals
+dresids <- residuals( tv_fito, type="deviance" )
+ lp <- predict( tv_fito, type="lp" )
+ plot(lp, dresids, xlab="Linear Predictor", ylab="Deviance Residual")
+ dfbeta1<-ggcoxdiagnostics(tv_fito, type = "dfbeta",
+                  linear.predictions = FALSE, ggtheme = theme_bw())
+  dfbeta <- residuals( tv_fito, type="dfbeta" )
+ colnames( dfbeta ) <- names(tv_fito$coef)
+ summary( dfbeta )
+ 
+
+
+###Extended Cox model with clustering
+fit_tvc <- coxph( Surv(tstart, tstop, status) ~ member+ bursary+branch_csd+
+                school +sts+license_cc+cluster(csd), method="efron",data=nuba1_lf)
+install.packages("stargazer")
+library(stargazer)
+stargazer(fit_tvc)
+
+###Shared frailty model(random intercept follows a normal distribution)
+install.packages("coxme")
+library(coxme)
+
+sfrail <- coxme(Surv(tstart, tstop, status) ~ member.t + bursary + branch_csd 
+                  +     school + sts+license_cc 
+                  +   (1 |csdid),  data = nuba1_lf)
+                  
+###Average frailty by census subdivision
+avg_frailty <- with(nuba1_lf, tapply(status,csd, sum, na.rm=T))
+pyears <- with(nuba1_lf, tapply(tstop-tstart,schooldc, sum, na.rm=T))
+count1 <- with(nuba1_lf, tapply(new_status,schooldc,function(x) sum(!is.na(x))))
+index <- match(names(ranef(sf)[[1]]), names(avg_frailty))
+makefig("cfig2")
+plot(avg_frailty[index], exp(ranef(sf)[[1]]), log='y',xlab="Number of renewals per school district",
+ylab="Estimated excess school district-level risk")
+(exp(ranef(sf)[[1]]))
+
+###Random coefficients model
+sf1 <- coxme(Surv(tstart, tstop,new_status) ~ factor(t) +scholar + sts +branch
+        + license_cc +school + log(enfant)+(1+branch|schooldc),data = nuba1_lf) 
+
+###Analysis of variance table
+ anova(sf,sf1)
+
+###Shared frailty with gamma frailty
+sfrail_g<-coxph(Surv(tstart, tstop,new_status) ~ factor(t) +scholar + sts +branch+
+                         license_cc +school+frailty(schooldc,distribution ="gamma"),data = nuba1_lf)
+       
+
+
+
+
+
+
+
+ 
+ 
+       
+ 
+
+
+
+                                     
+
+
+
+
+
+
+
+
+
+
