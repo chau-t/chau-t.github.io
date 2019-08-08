@@ -307,5 +307,5 @@ for factor in range(len(bounds)):
     cons.append(u)
     
 theta=np.array([43.501,3.612,4.628,1.818,1.050,2.056])
-res = scipy.optimize.minimize(p,theta,constraints=cons,method='COBYLA')
+res = minimize(p,theta,constraints=cons,method='COBYLA')
 print(res)
