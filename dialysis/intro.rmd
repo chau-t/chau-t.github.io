@@ -1,0 +1,2 @@
+This folder contains Stata code that I am working on to replicate Grieco and McDeviit's 
+"Productivity and Quality in Health Care: Evidence from the Dialysis Industry"(2016)
