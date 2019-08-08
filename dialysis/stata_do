@@ -1,0 +1,104 @@
+cd 
+clear
+local csvfiles : dir . files "*.csv"
+foreach file of local csvfiles {
+drop _all
+insheet using "`file'"	
+local outfile = subinstr("`file'",".csv","",.)
+save "`outfile'", replace
+} 
+clear
+*****************************************************************************************
+**looping over to extract the particular year from dta file names and using it to 
+**create "year" variable in each dataset
+***************************************************************************************
+local dtafiles: dir . files "*.dta"
+foreach file of local dtafiles {
+drop _all
+use "`file'", clear
+gen year = regexr(regexr("`file'", ".dta",""), "DFR_Data_FY", "")	
+local new = subinstr("`file'",".dta","",.) 
+save "filpath_to_directory`new'.dta", replace
+}
+***************************************************************************
+****There are dta files for each year(2008-16). 
+**Now time to append the datasets(since I am using Stata MP there is a limit to number of variables I can keep and so I append 
+in stages and keep only relvant variables as number of variables has crossed the MP variable threshold. 
+use "path_to_directoryDFR_Data_FY2008.dta", clear
+append using "path_to_directoryDFR_Data_FY2009.dta" "path_to_directoryDFR_Data_FY2010.dta", force
+keep year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f clmcntcomy3_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f surveydt_f
+
+append using "path_to_directoryDFR_Data_FY2011.dta" "path_to_directoryDFR_Data_FY2012.dta" "path_to_directoryDFR_Data_FY2013.dta", force
+append using "path_to_directoryDFR_Data_FY2014.dta" "path_to_directoryDFR_Data_FY2015.dta", force
+append using "path_to_directoryDFR_Data_FY2016.dta", force
+keep year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f sepiy4_f htay4_f rdshy4_f hdyy4_f clmcntcomy3_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f compl_cond cfc_f surveydt_f surveydt_o_f surveydt_n_f survey_dt 
+********************************************************************************************************************************
+**Cleaning survey date variable and generating new variable surv_date
+describe surveydt_f surveydt_o_f surveydt_n_f survey_dt 
+local varlist surveydt_f surveydt_o_f surveydt_n_f survey_dt  
+foreach var of local varlist {
+gen new`var' = date(`var', "DMY")
+format new`var' %td
+} 
+gen surv_date=.
+replace surv_date = newsurveydt_f if !missing(newsurveydt_f)
+replace surv_date = newsurveydt_o_f if !missing(newsurveydt_o_f) & missing(newsurveydt_n_f)
+replace surv_date = newsurveydt_n_f if !missing(newsurveydt_n_f) & missing(newsurveydt_o_f)|!missing(newsurveydt_o_f) & !missing(newsurveydt_n_f)
+replace surv_date = newsurvey_dt if !missing(newsurvey_dt)
+format %td surv_date
+**************************************************************************************************************************************
+*****Renaming variables
+*************************************************************************************************************************************
+rename provfs provid
+rename provcity city
+rename provname name
+rename chainnam chainname
+rename owner_f profit_status
+rename totstas_f stations
+rename staffy4_f total_staff
+rename dietfty4_f dieticiansFT
+rename dietpty4_f dieticiansPT
+rename nursefty4_f nurseFT
+rename nursepty4_f nursePT
+rename ptcarefty4_f ptcareFT
+rename ptcarepty4_f ptcarePT
+rename socwkfty4_f social_workerFT
+rename staffy3_f total_staff_l1
+rename dietfty3_f dieticiansFT_l1
+rename dietpty3_f dieticiansPT_l1
+rename nursefty3_f nurseFT_l1
+rename nursepty3_f nursePT_l1
+rename ptcarefty3_f ptcareFT_l1
+rename ptcarepty3_f ptcarePT_l1
+rename socwkfty3_f social_workerFT_l1
+rename socwkpty3_f social_workerPT_l1
+rename phdy4_f patient_months
+rename dyy4_f patient_years 
+rename ppavfy4_f pct_fistula
+rename sexy4_f pct_female
+rename agey4_f patient_age
+rename viny4_f patient_esrd_years
+rename smry4_f std_mortality_ratio
+rename smry3_f std_mortality_ratio_l1
+rename sepiy4_f pct_septic
+rename sepiy3_f pct_septic_l1
+***********************************************************************************************************************************
+*****Table-1
+**Generating descriptive statistics(mean and standard deviation) for variables:patient-years, 
+***patient-months, full-time staff, net hiring, zero net hiring, stations,septic infection rate and excess mortality
+***********************************************************************************************************************************
+gen fte = nurseFT+ptcareFT+0.5*(nursePT+ptcarePT)
+gen net_hiring = fte - nurseFT_l1 - ptcareFT_l1 - 0.5*(nursePT_l1 + ptcarePT_l1)
+gen zero_net_hiring=.
+replace zero_net_hiring=1 if net_hiring>0
+replace zero_net_hiring=0 if net_hiring==0
+summarize patient_months patient_years fte net_hiring zero_net_hiring stations pct_septic std_mortality_ratio
+***********************************************************************************************************************************
+
+
+
+
+
+
+
+
