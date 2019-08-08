@@ -1,0 +1,2 @@
+This folder contains some Python code that I have written to replicate Berry, Levinsohn and Pakes' 1995 paper on 
+differentiated goods in the US automobile industry("Automobile Prices in Market Equilibrium"). 
