@@ -23,7 +23,7 @@ save "filpath_to_directory`new'.dta", replace
 ***************************************************************************
 ****There are dta files for each year(2008-16). 
 **Now time to append the datasets(since I am using Stata MP there is a limit to number of variables I can keep and so I append 
-in stages and keep only relvant variables as number of variables has crossed the MP variable threshold. 
+**in stages and keep only relvant variables as number of variables has crossed the MP variable threshold. 
 use "path_to_directoryDFR_Data_FY2008.dta", clear
 append using "path_to_directoryDFR_Data_FY2009.dta" "path_to_directoryDFR_Data_FY2010.dta", force
 keep year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f clmcntcomy3_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f surveydt_f
