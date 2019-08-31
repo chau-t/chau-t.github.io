@@ -4,4 +4,4 @@ churn folder for a snippet of the code written in R) and to replicate published 
 Stata do file that I am currently working on to produce results from a paper on quality-quantity tradeoff while the differentiated goods
 folder has some code in Python for demand and supply estimation in a differentiated goods market).
 
-The replication attempts are currently in progress and I hope to finish them soon. 
+The replication attempts are currently in progress. 
