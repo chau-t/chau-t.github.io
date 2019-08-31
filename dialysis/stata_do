@@ -9,47 +9,31 @@ save "`outfile'", replace
 } 
 clear
 *****************************************************************************************
-**looping over to extract the particular year from dta file names and using it to 
-**create "year" variable in each dataset
+*/looping over to extract the particular year from dta file names and using it to 
+create "year" variable in each dataset*/
 ***************************************************************************************
 local dtafiles: dir . files "*.dta"
 foreach file of local dtafiles {
 drop _all
 use "`file'", clear
-gen year = regexr(regexr("`file'", ".dta",""), "DFR_Data_FY", "")	
+gen year = regexr(regexr("`file'", ".dta",""), "y", "")	
 local new = subinstr("`file'",".dta","",.) 
-save "filpath_to_directory`new'.dta", replace
+save "......\`new'.dta", replace
 }
 ***************************************************************************
-****There are dta files for each year(2008-16). 
-**Now time to append the datasets(since I am using Stata MP there is a limit to number of variables I can keep and so I append 
-**in stages and keep only relvant variables as number of variables has crossed the MP variable threshold. 
-use "path_to_directoryDFR_Data_FY2008.dta", clear
-append using "path_to_directoryDFR_Data_FY2009.dta" "path_to_directoryDFR_Data_FY2010.dta", force
-keep year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f clmcntcomy3_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f surveydt_f
+/*There are dta files for each year(2008-16). */
+for numlist 2008/2011 : append using "....\yX", force
+keep p year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f clmcntcomy3_f clmcntcomy4_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f surveydt_f
+for numlist 2012/2014 : append using ".......\yX", force
+keep p year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f sepiy4_f htay4_f rdshy4_f hdyy4_f clmcntcomy3_f clmcntcomy4_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f compl_cond cfc_f surveydt_f surveydt_o_f surveydt_n_f survey_dt 
+for numlist 2015/2016 : append using "........\yX", force
+keep p year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f sepiy4_f htay4_f rdshy4_f hdyy4_f clmcntcomy3_f clmcntcomy4_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f compl_cond cfc_f surveydt_f surveydt_o_f surveydt_n_f survey_dt 
+save dialysis
 
-append using "path_to_directoryDFR_Data_FY2011.dta" "path_to_directoryDFR_Data_FY2012.dta" "path_to_directoryDFR_Data_FY2013.dta", force
-append using "path_to_directoryDFR_Data_FY2014.dta" "path_to_directoryDFR_Data_FY2015.dta", force
-append using "path_to_directoryDFR_Data_FY2016.dta", force
-keep year provfs provcity provname state network chainnam modal_f owner_f totstas_f staffy4_f dietfty4_f dietpty4_f nursefty4_f nursepty4_f ptcarefty4_f ptcarepty4_f socwkfty4_f socwkpty3_f phdy4_f dyy4_f staffy3_f dietfty3_f dietpty3_f nursefty3_f nursepty3_f ptcarefty3_f ptcarepty3_f socwkfty3_f socwkpty3_f phdy3_f ppavfy4_f sexy4_f agey4_f viny4_f hgmy4_f smry4_f sepiy4_f htay4_f rdshy4_f hdyy4_f clmcntcomy3_f hgmy3_f smry3_f shrdy3_f shrty3_f sepiy3_f htay3_f rdshy3_f hdyy3_f compl_cond cfc_f surveydt_f surveydt_o_f surveydt_n_f survey_dt 
-********************************************************************************************************************************
-**Cleaning survey date variable and generating new variable surv_date
-describe surveydt_f surveydt_o_f surveydt_n_f survey_dt 
-local varlist surveydt_f surveydt_o_f surveydt_n_f survey_dt  
-foreach var of local varlist {
-gen new`var' = date(`var', "DMY")
-format new`var' %td
-} 
-gen surv_date=.
-replace surv_date = newsurveydt_f if !missing(newsurveydt_f)
-replace surv_date = newsurveydt_o_f if !missing(newsurveydt_o_f) & missing(newsurveydt_n_f)
-replace surv_date = newsurveydt_n_f if !missing(newsurveydt_n_f) & missing(newsurveydt_o_f)|!missing(newsurveydt_o_f) & !missing(newsurveydt_n_f)
-replace surv_date = newsurvey_dt if !missing(newsurvey_dt)
-format %td surv_date
 **************************************************************************************************************************************
 *****Renaming variables
 *************************************************************************************************************************************
-rename provfs provid
+rename p provid
 rename provcity city
 rename provname name
 rename chainnam chainname
@@ -82,18 +66,226 @@ rename smry4_f std_mortality_ratio
 rename smry3_f std_mortality_ratio_l1
 rename sepiy4_f pct_septic
 rename sepiy3_f pct_septic_l1
+rename clmcntcomy3_f comorbidities_l1
+rename clmcntcomy4_f comorbidites
+rename hgmy4_f hemoglobin
+replace city = upper(city)
+
 ***********************************************************************************************************************************
-*****Table-1
-**Generating descriptive statistics(mean and standard deviation) for variables:patient-years, 
-***patient-months, full-time staff, net hiring, zero net hiring, stations,septic infection rate and excess mortality
-***********************************************************************************************************************************
+*/Table-1
+Generating descriptive statistics(mean and standard deviation) for variables:patient-years, 
+patient-months, full-time staff, net hiring, zero net hiring, stations,septic infection rate and excess mortality*/
+Unit of observation is center-year
+fte : full-time equivalent nurses and technicians in center */
 gen fte = nurseFT+ptcareFT+0.5*(nursePT+ptcarePT)
-gen net_hiring = fte - nurseFT_l1 - ptcareFT_l1 - 0.5*(nursePT_l1 + ptcarePT_l1)
-gen zero_net_hiring=.
-replace zero_net_hiring=1 if net_hiring>0
-replace zero_net_hiring=0 if net_hiring==0
-summarize patient_months patient_years fte net_hiring zero_net_hiring stations pct_septic std_mortality_ratio
+
+/* Generating lagged variables for calculating annual change in fte in center */
+gen change_staff = abs(fte - nurseFT_l1 - ptcareFT_l1 - 0.5*(nursePT_l1 + ptcarePT_l1)) 
+
+
+/* Creating lagged variable for calculating annual change in fte staff and stations in center to 
+obtain net change in hiring in center and net change in stations respectively. 
+Then using net change in variables to obtain dummy variables for whether net change 
+in stations or full-time equivalent staff was non-zero or not*/
+sort provid year
+by provid : gen stations_lag = stations[_n-1]
+bysort provid year (stations) : gen change_stations = abs(stations - stations_lag)
+
+local varlist change_stations change_staff 
+foreach var of local varlist {
+gen zero_net_`var' = `var'>0
+replace zero_net_`var'=. if missing(`var')
+}
+/*Summary statistics for table-1 */
+summarize patient_months patient_years fte change_staff zero_net_change_staff stations zero_net_change_stations pct_septic std_mortality_ratio
+codebook provid, compact 
 ***********************************************************************************************************************************
+/* State inspection rate is the percentage of a state's centre's that 
+were inspected that year 
+Cleaning survey date variable and generating new variable surv_date*/
+describe surveydt_f surveydt_o_f surveydt_n_f survey_dt
+browse surveydt_f surveydt_o_f surveydt_n_f survey_dt 
+/*surveydt_o_f and surveydt_n_f are in month-day-year format while surveydt_f and survey_dt
+are in day-month-year format. 
+surveydt_o_g gives pre-2010 survey dates while surveyft_n_f gives post-2010
+survey dates*/
+local varlist surveydt_o_f surveydt_n_f 
+foreach var of local varlist {
+gen n_`var' = date(`var', "MDY")
+format n_`var' %td
+}
+local varlist1 surveydt_f survey_dt  
+foreach var1 of local varlist1 {
+gen n_`var1' = date(`var1', "DMY")
+format n_`var1' %td
+} 
+ /*Generate two survey date variables with as little missing values as 
+as possible. Pre-2010 date variables (n_surveydt_o_f and n_surveydt_f) 
+are combined to form surv_date1 while post-2010 date variables 
+(n_surveydt_n_f and n_survey_dt) are combined to form surv_date2. */
+gen surv_date1=.
+replace surv_date1 = n_surveydt_f if !missing(n_surveydt_f) & missing(n_surveydt_o_f)
+format surv_date1 %td
+replace surv_date1 = n_surveydt_o_f if missing(n_surveydt_f) & !missing(n_surveydt_o_f)
+format surv_date1 %td
+gen surv_date2=.
+replace surv_date2 = n_surveydt_n_f if !missing(n_surveydt_n_f) & missing(n_survey_dt)
+format %td surv_date2
+replace surv_date2 = n_survey_dt if missing(n_surveydt_n_f) & !missing(n_survey_dt)
+format %td surv_date2
+
+/*Generating variables for the year a center has been surveyed from surv_date1 and surv_date2 */
+gen year1 = year(surv_date1)
+gen year2 = year(surv_date2)
+ /*Generate inspection rate variable */
+gen id = _n
+rename year y 
+reshape long year, i(id) j(inspect_year)
+/* Total number of unique centres in each state */ 
+egen tag = tag(provid)
+egen unique_centre_state = total(tag), by(state)
+egen centre_state_year = total(tag), by(state year)
+gen state_inspect_rate = (centre_state_year/unique_centre_state)*100
+
+sort y provid
+qui by y provid : gen dup = cond(_N==1,0,_n)
+drop if dup>1
+
+/* Generate time since last inspection in years */ 
+gen current_date = "31dec" + y
+gen last_inspect_date=. 
+replace last_inspect_date=surv_date2 if !missing(surv_date2) 
+replace last_inspect_date=surv_date1 if missing(surv_date2)
+format last_inspect_date %td 
+gen current_date1 = date(current_date, "DMY")
+format current_date1 %td
+gen time_since_inspection = (current_date1 - last_inspect_date)/365
+ 
+ 
+/*Creating dummy variable for profit status */
+tab profit_status
+gen profit_dummy=.
+replace profit_dummy=1 if profit_status=="For Profit"
+replace profit_dummy=0 if profit_status=="Non-profit"   
+
+/*Competitors is number of competing facilities in a health service area (HSA) */
+
+****************************************************************************************************************
+/*Detour from original dataset : cleaning hsa and city-level data before joining to master dataset dialysis */ 
+***Health service area to county and state crosswalk data is obtained from seer.cancer.gov
+**City to count crosswalk is obtained from https://simplemaps.com/data/us-cities
+
+/*Cleaning county_city crosswalk and merging */
+import delimited using "..................\uscitiesv1.5.csv", clear
+keep city city_ascii state_id state_name county_fips county_name zips id
+
+replace city = upper(city)
+rename county_fips fips
+rename state_id state 
+sort city county_name state
+qui by city county_name state : gen du = cond(_N==1,0,_n)
+save city_county
+
+*/Cleaning county variable in county to state cross walk*/
+import delimited using "..........................\Health.Service.Areas.csv"
+gen upper_case = upper(statecounty)
+gen state = regexs(0) if regexm(statecounty,("^[A-Z][A-Z]"))
+gen remove_state_code = regexr(regexr(upper_case, "^[A-Z][A-Z]+\:",""),"\(+[0-9][0-9][0-9][0-9][0-9]+\)$","")
+replace remove_state_code = subinstr(remove_state_code, "COUNTY", "", .)
+rename remove_state_code county_name
+replace county_name = regexr(regexr(county_name, "[0-9]+",""),"[0-9][0-9][0-9][0-9]","")
+replace county_name = subinstr(subinstr(county_name, "-","",.),"+","",.)
+replace county_name = subinstr(subinstr(county_name,"(","",.),")","",.)
+replace county_name = strtrim(county_name)
+
+rename hsancimodified hsa_no
+save hsa_county
+
+merge m:1 fips using city_county
+list city county_name if _merge==1
+drop if county_name=="UNKNOWN"  
+replace county_name="YORK" if inlist(county_name,"JAMES/YORK/POQUOSON/WILLIAMSBURG   1981")
+replace county_name="BEDFORD" if inlist(county_name,"BEDFORD CITY")
+replace county_name="ALLEGANY" if inlist(county_name,"ALLEGHANY/CLIFTON FORGE/COVINGTO   1979")
+replace county_name="ROCKINGHAM" if inlist(county_name,"ROCKINGHAM/HARRISONBURG   1979")
+replace county_name = upper(county_name)
+drop _merge
+save hsa_county_city
+
+*********************************************************************************************
+/*Back to master data set */
+use dialysis, clear 
+merge m:1 city state using city_county   **My target is not to match counties but hsa's. so merge with hsa data. 
+replace county_name = upper(county_name)
+drop _merge
+merge m:1 city county_name fips state using hsa_county_city
+
+/*Computing number of competitors in an hsa*/
+egen competitor = count(provid), by(hsa_no year)
+replace competitor=. if missing(provid)|missing(year)
+gen compete_1 = competitor==1
+gen compete_2 = competitor==2
+gen compete_3 = competitor>=3
+forvalues i = 1/3 {
+replace compete_`i'=. if missing(competitor)
+}
+sum time_since_inspection state_inspect_rate profit_dummy competitor 
+
+*****************************************************************************************************
+/*Table-3-Summary statistics for patient characteristics */ 
+destring year, gen(y2)
+rename comorbidites co2 
+rename comorbidities_l1 co1
+gen y3=. 
+gen y4 = y2 - 1
+replace y3 = y4 if !missing(co1)
+replace y3 = y2 if !missing(co2)
+gen comor=.
+replace comor = co1 if !missing(co1) & missing(co2)
+replace comor = co2 if !missing(co2)
+replace comor=. if y4<2008
+
+sum patient_age pct_female patient_esrd_years pct_fistula hemoglobin comor
+
+*********************************************************************************************************
+/*Table-4-regressions of infection rate on other covariates */
+
+/*Generating dummy variable for non-profit status*/
+gen non_profit = profit_status=="Non-profit"
+replace non_profit=. if missing(profit_status)
+
+/*Generating dummy variable for Fresenius chain*/
+gen fresenius = strpos(name,"FRESENIUS")>0
+gen fr = cond(fresenius,1,0)
+replace fr=. if missing(name)
+
+/*Generating dummy variable for Davita chain */
+gen davita = strpos(name,"DAVITA")>0
+gen da = cond(davita,1,0)
+replace da=. if missing(name)
+
+local p_char patient_age pct_female patient_esrd_years pct_fistula hemoglobin comor
+local controls "`p_char'"
+local varlist time_since_inspection state_inspect_rate
+local v "`varlist'"
+local complist compete_1 compete_2 compete_3
+local competition "`complist'"
+local covar time_since_inspection state_inspect_rate comp1 comp2 comp3 profit_dummy davita fresenius 
+local cov "`covar'"
+
+
+foreach var of local varlist {
+xtreg pct_septic `var' `controls', fe cluster(provid)
+}
+xtset provid y2
+
+xtreg pct_septic `varlist' `controls', fe cluster(provid)
+
+xtreg pct_septic `varlist' `controls', fe cluster(provid)
+
+xtreg pct_septic `varlist' `complist' `controls', fe cluster(provid)
+
+
 
 
 
